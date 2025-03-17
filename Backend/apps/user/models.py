@@ -3,22 +3,29 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 
 class CustomUserManager(BaseUserManager):
     # Метод для создания обычного пользователя
-    def create_user(self, login, username, password=None):
+    def create_user(self, username, id_telegram):
+        user = self.model( username=username)
+        user.set_id_telegram(id_telegram)
+        user.set_status("active")
+        user.save(using=self._db)
+        return user
+    
+    def create_stuff(self, login, username, password=None):
+        if not username:
+            raise ValueError("The Username must be set")
         if not login:
-            raise ValueError("Users must have a login")
-        user = self.model(login=login, username=username)
-        user.set_password(password)  # Хеширование пароля
-        user.save(using=self._db)
-        return user
+            raise ValueError("The Login must be set")
+        
+        user = self.model(username=username, login=login)
+        if password:
+            user.set_password(password)  # Хэширование пароля
+        else:
+            raise ValueError("Password must be provided")
 
-    # Метод для создания суперпользователя
-    def create_superuser(self, login, username, password=None):
-        user = self.create_user(login, username, password)
-        user.is_staff = True
-        user.is_active = True
-        user.is_superuser = True
+        user.set_status("active")
         user.save(using=self._db)
         return user
+    
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
@@ -27,8 +34,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     login = models.CharField(max_length=50, unique=True, null=True)
     password = models.CharField(max_length=128, null=True)
 
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("active", "Active"),
+            ("ban", "Banned"),
+            ("deleted", "Deleted"),
+        ],
+        default="active",
+    )
+
 
 
     USERNAME_FIELD = "login"
@@ -38,6 +53,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+    
+    def set_status(self, status):
+        if status not in dict(self.STATUS_CHOICES):
+            raise ValueError("Invalid status")
+        self.status = status
+        self.save()  
+    
+    def set_id_telegram(self, id_telegram):
+        self.id_telegram = id_telegram
+        self.save()  
+
+    def soft_delete(self):
+        self.set_status("deleted")
 
 class UserRole(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name= 'roles')
