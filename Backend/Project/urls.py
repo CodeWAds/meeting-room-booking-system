@@ -18,6 +18,6 @@ Including another URLconf
 """
 
 urlpatterns = [
-    path("hello/", include("apps.hello.urls")),
+    path("user/", include("apps.user.urls")),
     path('admin/', admin.site.urls),
 ]
