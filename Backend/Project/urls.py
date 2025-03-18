@@ -19,5 +19,6 @@ Including another URLconf
 
 urlpatterns = [
     path("user/", include("apps.user.urls")),
+    path("location/", include("apps.location.urls")),
     path('admin/', admin.site.urls),
 ]
