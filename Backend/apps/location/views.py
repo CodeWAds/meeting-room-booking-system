@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 import json
 from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot
+import datetime
 
 # Create your views here.
 def get_locations(request):
@@ -137,3 +138,29 @@ def delete_time_slot(request, location_id, slot_id):
         time_slot = get_object_or_404(TimeSlot, id_time_slot=slot_id, id_location=location_id)
         time_slot.delete()
         return JsonResponse({"message": "TimeSlot deleted"})
+    
+
+
+def get_available_rooms(request):
+    if request.method != "GET":
+        return JsonResponse({"message": "Invalid metod"})
+    data = json.loads(request.body)
+    location_id = data['location']  
+    date_str = data['date']    
+    time_slot_id = request.get('timeslot')  
+    time_slot = list(TimeSlot.objects.filter(id_time_slot = time_slot_id))
+
+    date = datetime.strptime(date_str, "%Y-%m-%d")
+    
+    available_rooms = Room.objects.filter(location_id=location_id)
+
+    available_rooms = available_rooms.exclude(
+        booking__date=date,
+        booking__time_slots__in=[time_slot],
+    )
+    room_list = [
+        {"name": room.name, "location": room.location.name, "capacity": room.capacity}
+        for room in available_rooms
+    ]
+
+    return JsonResponse({"available_rooms": room_list})

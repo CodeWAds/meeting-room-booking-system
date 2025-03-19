@@ -15,6 +15,7 @@ urlpatterns = [
     path("<int:location_id>/rooms/<int:room_id>/", views.room_detail, name="room-detail"), 
     path('<int:location_id>/rooms/<int:room_id>/update', views.update_room, name='update_room'),
     path('<int:location_id>/rooms/<int:room_id>/delete', views.delete_room, name='delete_room'),
+    path('get_available_rooms/', views.get_available_rooms, name='get_available_rooms'),
 
     #time_slot
     path("<int:location_id>/time_slot/", views.get_time_slot, name="get_time_slots"),  

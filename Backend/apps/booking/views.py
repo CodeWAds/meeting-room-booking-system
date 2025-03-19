@@ -1,14 +1,13 @@
 import json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from .models import Booking, BookingTimeSlot, TimeSlot
+from .models import Booking,  TimeSlot
 
 
 def get_booking(request):
     """ Получение всех бронирований """
     bookings = Booking.objects.all()  # Получаем объекты, 
     final_list = []
-
     for currect_booking in bookings:
         currect_booking = {
             "id_booking": currect_booking.id_booking,
@@ -19,7 +18,9 @@ def get_booking(request):
             "status": currect_booking.status,
             "time_slot": list(currect_booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
         }
-    final_list.append(currect_booking)
+        final_list.append(currect_booking)
+    return JsonResponse({"Booking": final_list})
+    
 
 
 def create_booking(request):
