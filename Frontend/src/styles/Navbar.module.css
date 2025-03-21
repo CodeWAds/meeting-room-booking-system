@@ -1,0 +1,80 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+
+.navbarBrand {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.navbarBurger {
+  display: flex; 
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+background: rgb(32, 41, 56);
+  border-radius: 50%; 
+  cursor: pointer;
+  padding: 10px;
+}
+
+.navbarBurger span {
+  width: 20px; 
+  height: 3px; 
+background: rgb(206, 205, 205);
+  margin: 2px 0; 
+  border-radius: 2px; 
+}
+
+.navbarMenu {
+  display: none; 
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  background-color: #2a2a4e;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.navbarMenu.active {
+  display: flex;
+}
+
+.navbarMenu a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .navbarBurger {
+    font-size: 12px;
+
+    text-align: center;
+  
+    border-radius: 50%;
+    box-sizing: border-box;  
+  }
+
+  .navbarBurger span {
+    width: 20px; 
+    height: 3px; 
+  background: rgb(206, 205, 205);
+    margin: 2px 0; 
+    border-radius: 2px; 
+  }
+
+  .navbarMenu {
+    gap: 10px;
+
+  }
+
+  .navbarMenu a {
+    font-size: 14px; 
+  }
+}
