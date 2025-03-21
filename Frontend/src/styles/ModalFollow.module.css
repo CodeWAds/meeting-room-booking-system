@@ -62,9 +62,44 @@
 
 .dateInputWrapper {
     position: relative;
-    display: flex;
-    align-items: center;
-}
+    width: 150px;
+    border-radius: 50px;
+  }
+  
+  .dateInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; 
+    cursor: pointer;
+    z-index: 2;
+  }
+  
+  .dateDisplay {
+    display: block;
+    padding: 10px;
+    border-radius: 50px;
+    background: rgb(32, 41, 56);
+    color: rgb(201, 201, 201);
+    font-size: 14px;
+    pointer-events: none; /* Отключаем взаимодействие с текстом */
+  }
+  
+  
+  .dateInputWrapper::after {
+    content: url('../../public/svg/calendar.svg'); /* Используем эмодзи календаря */
+    position: absolute;
+    top: 55%;
+    right: 20px;
+    transform: translateY(-50%);
+    color: rgb(201, 201, 201);
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  
 
 .dateInput {
     padding: 8px 16px;
@@ -74,7 +109,7 @@
     color: rgb(201, 201, 201);
     font-size: 16px;
     cursor: pointer;
-    width: 180px;
+    width: 150px;
     
 }
 
@@ -82,9 +117,9 @@
     opacity: 0;
 }
 
-.dateDisplay {
+/* .dateDisplay {
     display: none;
-}
+} */
 
 .labelContainer {
     display: flex;
@@ -94,34 +129,47 @@
 
 .tooltipWrapper {
     position: relative;
-}
+    display: inline-flex;
+    align-items: center;
+  }
 
-.tooltipTrigger {
-    display: inline-block;
+  .tooltipTrigger {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
     width: 16px;
     height: 16px;
-    background: rgb(255, 255, 255);
     border-radius: 50%;
+    background-image: url('../../public/svg/info.svg');
+    background-repeat: no-repeat;
+    color: #fff;
+    font-size: 14px;
     cursor: pointer;
-}
+    line-height: 16px;
+    vertical-align: middle;
+  }
 
-.tooltip {
+  .tooltip {
+    visibility: hidden;
     position: absolute;
-    top: 20px;
+    top: 100%;
     left: 0;
-    background: rgb(17, 24, 40);
-    color: rgb(201, 201, 201);
-    padding: 5px 10px;
-    border-radius: 4px;
+    background-color: hsl(240, 30%, 24%);
+    padding: 10px;
+    border-radius: 8px;
     font-size: 12px;
-    white-space: nowrap;
-    display: none;
-    border: 1px solid rgb(255, 255, 255);
-}
+    line-height: 1.4;
+    width: 150px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    color: rgb(201, 201, 201);
+  }
 
-.tooltipWrapper:hover .tooltip {
-    display: block;
-}
+  .tooltipWrapper:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
 
 .timeSlots {
     display: grid;
@@ -199,7 +247,6 @@
     }
 
     .dateInput {
-        width: 120px;
         font-size: 14px;
     }
 
@@ -210,7 +257,6 @@
 
     .confirmBtn,
     .cancelBtn {
-        width: 120px;
         font-size: 14px;
         padding: 8px 16px;
     }
