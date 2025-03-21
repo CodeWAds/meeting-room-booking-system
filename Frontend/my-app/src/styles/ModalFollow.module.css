@@ -1,0 +1,222 @@
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    font-family: 'Amaranth', sans-serif;
+}
+
+.modalContent {
+    background: rgb(17, 24, 40);
+    padding: 20px;
+    border: 2px solid rgb(255, 255, 255);
+    border-radius: 30px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    color: rgb(255, 255, 255);
+    box-sizing: border-box;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 25px;
+    font-size: 28px;
+    cursor: pointer;
+    color: rgb(255, 255, 255);
+}
+
+.filters {
+    margin-bottom: 20px;
+}
+
+.filterRow {
+    margin-bottom: 15px;
+}
+
+.filterItem {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filterItem label {
+    font-size: 20px;
+    color: rgb(201, 201, 201);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.filterInput {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dateInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dateInput {
+    padding: 8px 16px;
+    border: 1px solid rgb(255, 255, 255);
+    border-radius: 50px;
+    background: rgb(17, 24, 40);
+    color: rgb(201, 201, 201);
+    font-size: 16px;
+    cursor: pointer;
+    width: 180px;
+    
+}
+
+.dateInput::-webkit-calendar-picker-indicator {
+    opacity: 0;
+}
+
+.dateDisplay {
+    display: none;
+}
+
+.labelContainer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tooltipWrapper {
+    position: relative;
+}
+
+.tooltipTrigger {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: rgb(255, 255, 255);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.tooltip {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    background: rgb(17, 24, 40);
+    color: rgb(201, 201, 201);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    display: none;
+    border: 1px solid rgb(255, 255, 255);
+}
+
+.tooltipWrapper:hover .tooltip {
+    display: block;
+}
+
+.timeSlots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.timeSlot {
+    padding: 8px;
+    
+    border-radius: 50px;
+    border:none;
+    background: rgb(32, 41, 56);
+    text-align: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgb(201, 201, 201);
+    
+}
+
+.timeSlot.active {
+    border: 1px solid rgb(255, 255, 255);
+}
+
+.modalButtons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.confirmBtn {
+    padding: 10px 20px;
+    background: rgb(61, 176, 9);
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 400;
+    width: 150px;
+    text-align: center;
+}
+
+.confirmBtn:hover {
+    background: rgb(51, 146, 7);
+}
+
+.cancelBtn {
+    padding: 10px 20px;
+    background: rgba(174, 195, 239, 0.66);
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 400;
+    width: 150px;
+    text-align: center;
+}
+
+.cancelBtn:hover {
+    background: rgba(174, 195, 239, 0.8);
+}
+
+@media (max-width: 768px) {
+    .modalContent {
+        width: 90%;
+        height: auto;
+        padding: 30px 20px;
+    }
+
+    .filterItem label {
+        font-size: 16px;
+    }
+
+    .dateInput {
+        width: 120px;
+        font-size: 14px;
+    }
+
+    .timeSlot {
+        font-size: 14px;
+        padding: 6px;
+    }
+
+    .confirmBtn,
+    .cancelBtn {
+        width: 120px;
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    .close {
+        font-size: 24px;
+        right: 15px;
+    }
+}
