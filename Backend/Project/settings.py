@@ -79,9 +79,16 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+     'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'bookroom',     # имя вашей базы данных
+        'USER': 'adam',         # пользователь базы данных
+        'PASSWORD': 'Fsd_vyZ3', # пароль
+        'HOST': '150.241.90.210',      # или IP-адрес сервера MySQL
+        'PORT': '3306',           # порт соединения
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # можно добавить дополнительные опции
+        },
     }
 }
 

@@ -38,7 +38,7 @@ def get_user(request, user_id):
     if "User" in roles:
         user_profile = UserProfile.objects.filter(user_role__user=user).first()
         karma = user_profile.karma if user_profile else None  # Получаем карму, если есть
-
+    #переделать на весь список
     if "Manager" in roles:
         manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
         department = manager_profile.department if manager_profile else None  # Получаем отдел, если есть
