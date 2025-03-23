@@ -27,6 +27,12 @@ def create_booking(request):
     """ Создание нового бронирования """
     if request.method == "POST":
         data = json.loads(request.body)
+        
+        # Ensure that data["slot"] is a list
+        slot_ids = data["slot"]
+        if not isinstance(slot_ids, list):
+            slot_ids = [slot_ids]
+        
         booking_obj = Booking.objects.create(
             user_id=data["user_id"],
             room_id=data["room_id"],
@@ -34,9 +40,12 @@ def create_booking(request):
             review=data.get("review"),
             status=data.get("status", "pending")
         )
-        time_slots = TimeSlot.objects.filter(id_time_slot__in=data["slot"])
+        
+        time_slots = TimeSlot.objects.filter(id_time_slot__in=slot_ids)
         booking_obj.slot.add(*time_slots)
+        
         return JsonResponse({"message": "Booking created", "id_booking": booking_obj.id_booking})
+    
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
@@ -78,3 +87,22 @@ def delete_booking(request, booking_id):
         booking.delete()
         return JsonResponse({"message": "Booking deleted"})
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+def get_user_bookings(request, user_id):
+    """ Получение всех бронирований для конкретного пользователя """
+    bookings = Booking.objects.filter(user_id=user_id)
+    
+    final_list = []
+    for booking in bookings:
+        booking_data = {
+            "id_booking": booking.id_booking,
+            "user": booking.user.user_id,  # Используем user_id вместо id
+            "room": booking.room.id_room,
+            "date": booking.date.isoformat(),
+            "review": booking.review,
+            "status": booking.status,
+            "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+        }
+        final_list.append(booking_data)
+    
+    return JsonResponse({"UserBookings": final_list})

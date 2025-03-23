@@ -29,71 +29,103 @@ def get_users(request):
 
 
 def get_user(request, user_id):
-    user = get_object_or_404(CustomUser, user_id=user_id)  
-    roles = list(user.userrole_set.values_list("role", flat=True))
+    try:
+        # Получаем пользователя по ID
+        user = get_object_or_404(CustomUser, user_id=user_id)
 
-    karma = None
-    department = None
+        # Получаем роли пользователя через related_name='roles'
+        roles = list(user.roles.values_list("role", flat=True))  # Исправлено: user.roles вместо user.userrole_set
 
-    if "User" in roles:
-        user_profile = UserProfile.objects.filter(user_role__user=user).first()
-        karma = user_profile.karma if user_profile else None  # Получаем карму, если есть
-    #переделать на весь список
-    if "Manager" in roles:
-        manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-        department = manager_profile.department if manager_profile else None  # Получаем отдел, если есть
+        karma = None
+        department = None
 
-    data = {
-        "user_id": user.user_id,
-        "username": user.username,
-        "login": user.login,
-        "status": "active" if user.is_active else "banned",  # Определяем статус
-        "roles": roles,
-        "karma": karma,
-        "deparment": department
-    }
-    return JsonResponse(data)  # Возвращаем JSON
+        # Если у пользователя есть роль "user", получаем карму
+        if "user" in roles:
+            user_profile = UserProfile.objects.filter(user_role__user=user).first()
+            karma = user_profile.karma if user_profile else None
+
+        # Если у пользователя есть роль "manager", получаем отдел
+        if "manager" in roles:
+            manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+            department = manager_profile.department if manager_profile else None
+
+        # Формируем ответ
+        data = {
+            "user_id": user.user_id,
+            "username": user.username,
+            "status": "active" if user.is_active else "banned",
+            "roles": roles,
+        }
+
+        # Если у пользователя есть роль "user", добавляем поле karma
+        if "user" in roles:
+            data["karma"] = karma
+
+        # Если у пользователя нет роли "user", добавляем поле login
+        if "user" not in roles:
+            data["login"] = user.login
+
+        # Если у пользователя есть роль "manager", добавляем поле department
+        if "manager" in roles:
+            data["department"] = department
+
+        return JsonResponse(data)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 def user_create(request):
-        # Получаем данные из тела запроса
-        try:
-            data = json.loads(request.body)
-        
-            # Извлекаем данные из запроса
-            login = data.get('login')
-            username = data.get('username')
-            password = data.get('password')
-            status = data.get('status')
-            department = data.get('department')
-            roles = data.get('roles', [])
+    try:
+        data = json.loads(request.body)
 
-            # Создаем пользователя
-            user = CustomUser.objects.create_stuff(username=username, login=login, password=password)
+        username = data.get('username')
+        id_telegram = data.get('id_telegram')
+        login = data.get('login')
+        password = data.get('password')
+        status = data.get('status', "active")  # По умолчанию "active"
+        department = data.get('department')
+        roles = data.get('roles', [])  # roles передается как список строк, например ["user", "manager"]
 
-            # Привязываем роли к пользователю
-            for role_data in roles:
-                # Пример добавления роли
-                role = role_data.name
-                userrole = UserRole.objects.create(user=user, role=role)
-                userrole.save()
-                if role == "user":
-                    user_karma = user_profile = UserProfile.objects.create(user=user)
-                    user_karma.save()
-                if role == "manager":
-                    Manager = ManagerProfile.objects.create(user=user, department=department)
-                    Manager.save()
+        # Проверка на уникальность username
+        if CustomUser.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists'}, status=400)
 
-            return JsonResponse({
-                'id': user.id,
-                'login': user.login,
-                'username': user.username,
-                'status': status
-            }, status=201)
+        # Создание пользователя
+        user = CustomUser(username=username, id_telegram=id_telegram, login=login)
+        if password:
+            user.set_password(password)  # Хэширование пароля
+        user.set_status(status)
+        user.save()  # Сохраняем пользователя, чтобы получить ID
 
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-        except ValidationError as e:
-            return JsonResponse({'error': str(e)}, status=400)
+        # Привязка ролей
+        for role_name in roles:  # role_name - это строка, например "user" или "manager"
+            # Создаем роль для пользователя
+            user_role = UserRole.objects.create(user=user, role=role_name)
+
+            # Создаем профиль в зависимости от роли
+            if role_name == "user":
+                UserProfile.objects.create(user_role=user_role)
+
+            if role_name == "manager":
+                ManagerProfile.objects.create(user_role=user_role, department=department)
+
+        return JsonResponse({
+            'user_id': user.user_id,
+            'username': user.username,
+            'login': user.login if user.login else None,  # Логин может быть None для обычных пользователей
+            'status': user.status,
+            'roles': roles  # Возвращаем список ролей пользователя
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
         
 def user_update(request, user_id):
     try:
