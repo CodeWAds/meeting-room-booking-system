@@ -111,3 +111,12 @@ class FavoriteRoom(models.Model):
         unique_together = ('room', 'user')
     def __str__(self):
         return f"{self.user.username} - {self.room.name}"
+    
+
+class Location(models.Model):
+    id_location = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    address = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name

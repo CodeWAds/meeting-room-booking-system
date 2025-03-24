@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from .models import CustomUser, UserProfile, ManagerProfile, UserRole, FavoriteRoom
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
-from apps.location.models import Room
+from apps.location.models import Room, Location
 
 
 import  json
@@ -109,23 +109,23 @@ def user_create(request):
         user.save()  # Сохраняем пользователя, чтобы получить ID
 
         # Привязка ролей
-        for role_name in roles:  # role_name - это строка, например "user" или "manager"
-            # Создаем роль для пользователя
+        for role_name in roles:
             user_role = UserRole.objects.create(user=user, role=role_name)
 
-            # Создаем профиль в зависимости от роли
             if role_name == "user":
                 UserProfile.objects.create(user_role=user_role)
 
             if role_name == "manager":
-                ManagerProfile.objects.create(user_role=user_role, location_id=location_id)
+                # Получение экземпляра Location
+                location = get_object_or_404(Location, id_location=location_id)
+                ManagerProfile.objects.create(user_role=user_role, location_id=location)
 
         return JsonResponse({
             'user_id': user.user_id,
             'username': user.username,
-            'login': user.login if user.login else None,  # Логин может быть None для обычных пользователей
+            'login': user.login if user.login else None,
             'status': user.status,
-            'roles': roles  # Возвращаем список ролей пользователя
+            'roles': roles
         }, status=201)
 
     except json.JSONDecodeError:
@@ -134,68 +134,58 @@ def user_create(request):
         return JsonResponse({'error': str(e)}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
     
 
-        
 def user_update(request, user_id):
     if request.method != "PATCH":
-        return JsonResponse({"message": "Method not supported"})
+        return JsonResponse({"message": "Method not supported"}, status=405)
     try:
-        # Получаем данные из тела запроса
         data = json.loads(request.body)
-        
-        # Извлекаем данные из запроса
-        login = data.get('login')
+
         username = data.get('username')
+        id_telegram = data.get('id_telegram')
+        login = data.get('login')
         password = data.get('password')
         status = data.get('status')
         location_id = data.get('location_id')
         roles = data.get('roles', [])
 
-        # Находим пользователя по ID
-        try:
-            user = CustomUser.objects.get(id=user_id)
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+        # Находим пользователя по user_id
+        user = get_object_or_404(CustomUser, user_id=user_id)
 
-        # Обновляем поля пользователя
+        # Обновление полей пользователя
         if username:
             user.username = username
+        if id_telegram:
+            user.id_telegram = id_telegram
         if login:
             user.login = login
         if password:
-            user.set_password(password)  # Хэшируем новый пароль
-        if status:
-            user.set_status(status)  # Обновляем статус
+            user.set_password(password)
+        if status is not None:
+            user.set_status(status)  # Обновление статуса
 
-        # Сохраняем изменения в пользователе
-        user.save()
+        user.save()  # Сохраняем изменения
 
-        # Обновляем роли
-        UserRole.objects.filter(user=user).delete()  # Удаляем старые роли
-        for role_data in roles:
-            # Пример добавления роли
-            role = role_data.get('role')  # предполагается, что role_data имеет поле 'role'
-            UserRole.objects.create(user=user, role=role)
-            
-            # Обновляем профиль, в зависимости от роли
-            if role == "user":
-                user_profile, created = UserProfile.objects.get_or_create(user=user)  # Обновление или создание профиля
-                if created:  # Если профиль был только что создан, можно установить значения по умолчанию
-                    user_profile.karma = 100  # Установим начальное значение кармы, если это новый профиль
-                    user_profile.save()
+        # Удаление старых ролей
+        UserRole.objects.filter(user=user).delete()
 
-            if role == "manager":
-                manager_profile, created = ManagerProfile.objects.get_or_create(user=user)  # Обновляем или создаем профиль менеджера
-                if created:
-                    manager_profile.location_id = location_id  # Обновление департамента
-                    manager_profile.save()
+        # Привязка новых ролей
+        for role_name in roles:
+            user_role = UserRole.objects.create(user=user, role=role_name)
 
-        # Возвращаем обновленного пользователя
+            if role_name == "user":
+                UserProfile.objects.update_or_create(user_role=user_role)
+
+            if role_name == "manager":
+                location = get_object_or_404(Location, id_location=location_id)
+                ManagerProfile.objects.update_or_create(user_role=user_role, defaults={'location_id': location})
+
         return JsonResponse({
-            'id': user.id,
-            'login': user.login,
+            'user_id': user.user_id,
             'username': user.username,
+            'login': user.login if user.login else None,
             'status': user.status,
             'roles': roles
         }, status=200)
@@ -204,6 +194,10 @@ def user_update(request, user_id):
         return JsonResponse({'error': 'Invalid JSON data'}, status=400)
     except ValidationError as e:
         return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 
 def user_soft_delete(request, user_id):
     if request.method != "PATCH":
