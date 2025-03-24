@@ -30,10 +30,11 @@ def update_location(request, location_id):
         return JsonResponse({"message": "Location updated", "id_location": location.id_location})
 
 def location_delete(request, location_id):
-    if request.method == "POST":
-        location = get_object_or_404(Location, id_location=location_id)
-        location.delete()
-        return JsonResponse({"message": "Location deleted"})
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Method not supported"})
+    location = get_object_or_404(Location, id_location=location_id)
+    location.delete()
+    return JsonResponse({"message": "Location deleted"})
     
 
 # Views for Rooms
@@ -64,10 +65,11 @@ def update_room(request, location_id, room_id):
         return JsonResponse({"message": "Room updated", "id_room": room.id_room})
 
 def delete_room(request, location_id, room_id):
-    if request.method == "POST":
-        room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
-        room.delete()
-        return JsonResponse({"message": "Room deleted"})
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Method not supported"})
+    room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
+    room.delete()
+    return JsonResponse({"message": "Room deleted"})
 
 #Time_slot
 
@@ -142,10 +144,11 @@ def update_time_slot(request, location_id, slot_id):
 
 
 def delete_time_slot(request, location_id, slot_id):
-    if request.method == "POST":
-        time_slot = get_object_or_404(TimeSlot, id_time_slot=slot_id, id_location=location_id)
-        time_slot.delete()
-        return JsonResponse({"message": "TimeSlot deleted"})
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Method not supported"})
+    time_slot = get_object_or_404(TimeSlot, id_time_slot=slot_id, id_location=location_id)
+    time_slot.delete()
+    return JsonResponse({"message": "TimeSlot deleted"})
     
 
 

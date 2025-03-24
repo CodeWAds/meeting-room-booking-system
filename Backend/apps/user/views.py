@@ -210,21 +210,22 @@ def user_soft_delete(request, user_id):
             return JsonResponse({'error': 'User not found'}, status=404)
    
 def user_permanent_delete(request, user_id):
-    if request.method == 'DELETE':
-        try:
-            # Находим пользователя по ID
-            user = CustomUser.objects.get(id=user_id)
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        # Находим пользователя по ID
+        user = CustomUser.objects.get(id=user_id)
 
-            # Полное удаление
-            UserRole.objects.filter(user=user).delete()
-            UserProfile.objects.filter(user=user).delete()
-            ManagerProfile.objects.filter(user=user).delete()
-            user.delete()
+        # Полное удаление
+        UserRole.objects.filter(user=user).delete()
+        UserProfile.objects.filter(user=user).delete()
+        ManagerProfile.objects.filter(user=user).delete()
+        user.delete()
 
-            return JsonResponse({'message': 'User permanently deleted successfully'}, status=200)
+        return JsonResponse({'message': 'User permanently deleted successfully'}, status=200)
 
-        except CustomUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
         
 
 @csrf_exempt

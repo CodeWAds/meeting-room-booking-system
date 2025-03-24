@@ -81,12 +81,12 @@ def update_booking(request, booking_id):
 
 
 def delete_booking(request, booking_id):
-    """ Удаление бронирования """
-    if request.method == "DELETE":
-        booking = get_object_or_404(Booking, id_booking=booking_id)
-        booking.delete()
-        return JsonResponse({"message": "Booking deleted"})
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Method not supported"})
+    booking = get_object_or_404(Booking, id_booking=booking_id)
+    booking.delete()
+    return JsonResponse({"message": "Booking deleted"})
+    
 
 def get_user_bookings(request, user_id):
     """ Получение всех бронирований для конкретного пользователя """
