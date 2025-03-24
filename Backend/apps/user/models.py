@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from apps.location.views import Location, Room
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, id_telegram=None):
@@ -98,8 +99,15 @@ class UserProfile(models.Model):
 
 class ManagerProfile(models.Model):
     user_role = models.OneToOneField(UserRole, on_delete=models.CASCADE, primary_key=True)
-    #ЗАМЕНИТЬ ПРИ ДОБАВЛЕНИИ ЛОКАЦИИ
-    department = models.CharField(max_length=100)
-
+    location_id = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="Location")
     def __str__(self):
-        return f"{self.user_role.user.username} (Department: {self.department})"
+        return f"{self.user_role.user.username} (location_id: {self.location_id})"
+
+class FavoriteRoom(models.Model):
+    favorite_id = models.AutoField(primary_key=True)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='favorite_rooms')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='favorite_rooms')
+    class Meta:
+        unique_together = ('room', 'user')
+    def __str__(self):
+        return f"{self.user.username} - {self.room.name}"

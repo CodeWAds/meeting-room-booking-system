@@ -110,7 +110,7 @@ def time_slot_detail(request, location_id, slot_id):
     
 
 
-#отредактировать
+
 def update_time_slot(request, location_id, slot_id):
     if request.method == "POST":
         time_slot = get_object_or_404(TimeSlot, id_time_slot=slot_id, id_location=location_id)
@@ -118,20 +118,28 @@ def update_time_slot(request, location_id, slot_id):
         time_slot.time_begin = data.get("time_begin", time_slot.time_begin)
         time_slot.time_end = data.get("time_end", time_slot.time_end)
         time_slot.slot_type = data.get("slot_type", time_slot.slot_type)
-        special_exists = SpecialTimeSlot.objects.filter(id_time_slot=slot_id).exists()
+        # Пытаемся получить существующий специальный слот, если он есть.
+        try:
+            special = SpecialTimeSlot.objects.get(id_time_slot=slot_id)
+        except SpecialTimeSlot.DoesNotExist:
+            special = None
         if time_slot.slot_type == "special":
+            # Если специального слота нет, при создании нового требуется передать дату.
             if not special:
                 if "date" not in data:
-                    return JsonResponse({"error": "Date is required for special time slots"}, status=400)
+                    return JsonResponse({"error": "Дата обязательна для специальных временных слотов"}, status=400)
                 special = SpecialTimeSlot.objects.create(id_time_slot=time_slot, date=data["date"])
             else:
                 special.date = data.get("date", special.date)
                 special.save()
+        else:
+            # Если слот не специальный, удаляем существующий специальный слот, если он есть.
+            if special:
+                special.delete()
 
-        elif special_exists:  
-            special.delete()
         time_slot.save()
-        return JsonResponse({"message": "TimeSlot updated", "id_time_slot": time_slot.id_time_slot})
+        return JsonResponse({"message": "TimeSlot обновлен", "id_time_slot": time_slot.id_time_slot})
+
 
 def delete_time_slot(request, location_id, slot_id):
     if request.method == "POST":
