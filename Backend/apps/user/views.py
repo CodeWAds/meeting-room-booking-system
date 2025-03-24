@@ -36,51 +36,35 @@ def get_users(request):
 
 def get_user(request, user_id):
     if request.method != "GET":
-        return JsonResponse({"message": "Method not supported"})
+        return JsonResponse({"message": "Method not supported"}, status=405)
+
     try:
-        # Получаем пользователя по ID
         user = get_object_or_404(CustomUser, user_id=user_id)
+        roles = list(user.roles.values_list("role", flat=True))
 
-        # Получаем роли пользователя через related_name='roles'
-        roles = list(user.roles.values_list("role", flat=True))  
-
-        karma = None
-        location_id = None
-
-        # Если у пользователя есть роль "user", получаем карму
-        if "user" in roles:
-            user_profile = UserProfile.objects.filter(user_role__user=user).first()
-            karma = user_profile.karma if user_profile else None
-
-        # Если у пользователя есть роль "manager", получаем отдел
-        if "manager" in roles:
-            manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-            location_id = manager_profile.location_id if manager_profile else None
-
-        # Формируем ответ
         data = {
-            "user_id": user.user_id,
-            "username": user.username,
-            "status": user.status,
-            "roles": roles,
+            'user_id': user.user_id,
+            'username': user.username,
+            'status': user.status,
+            'roles': roles
         }
 
-        # Если у пользователя есть роль "user", добавляем поле karma
         if "user" in roles:
-            data["karma"] = karma
+            user_profile = UserProfile.objects.filter(user_role__user=user).first()
+            data['karma'] = user_profile.karma if user_profile else None
 
-        # Если у пользователя нет роли "user", добавляем поле login
-        if "user" not in roles:
-            data["login"] = user.login
-
-        # Если у пользователя есть роль "manager", добавляем поле location_id
         if "manager" in roles:
-            data["location_id"] = location_id
+            manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+            location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+            data['location_id'] = location_id
 
-        return JsonResponse(data)
+        return JsonResponse(data, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 
 def user_create(request):
@@ -204,31 +188,40 @@ def user_soft_delete(request, user_id):
         return JsonResponse({"message": "Method not supported"})
     try:
         # Находим пользователя по ID
-        user = CustomUser.objects.get(id=user_id)
+        user = CustomUser.objects.get(user_id=user_id)
         # Мягкое удаление
         user.soft_delete()
         return JsonResponse({'message': 'User soft deleted successfully'}, status=200)
 
     except CustomUser.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
-   
+
+
 def user_permanent_delete(request, user_id):
     if request.method != "DELETE":
-        return JsonResponse({"message": "Method not supported"})
+        return JsonResponse({"message": "Method not supported"}, status=405)
+    
     try:
         # Находим пользователя по ID
-        user = CustomUser.objects.get(id=user_id)
+        user = CustomUser.objects.get(user_id=user_id)
 
         # Полное удаление
         UserRole.objects.filter(user=user).delete()
-        UserProfile.objects.filter(user=user).delete()
-        ManagerProfile.objects.filter(user=user).delete()
+
+        # Исправляем фильтры для связанных моделей
+        UserProfile.objects.filter(user_role__user=user).delete()  # Убедитесь, что поле названо правильно
+        ManagerProfile.objects.filter(user_role__user=user).delete()  # Как и здесь
+
         user.delete()
 
         return JsonResponse({'message': 'User permanently deleted successfully'}, status=200)
 
     except CustomUser.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
         
 
 @csrf_exempt

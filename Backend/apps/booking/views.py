@@ -27,7 +27,7 @@ def get_booking(request):
 
 def create_booking(request):
     """ Создание нового бронирования """
-    if request.method != "PATCH":
+    if request.method != "POST":
         return JsonResponse({"message": "Method not supported"})
     data = json.loads(request.body)
     
