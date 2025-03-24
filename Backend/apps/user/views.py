@@ -11,6 +11,8 @@ import  json
 
 
 def get_users(request):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
     try:
         # Получаем всех пользователей
         users = CustomUser.objects.all()
@@ -33,6 +35,8 @@ def get_users(request):
 
 
 def get_user(request, user_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
     try:
         # Получаем пользователя по ID
         user = get_object_or_404(CustomUser, user_id=user_id)
@@ -80,6 +84,8 @@ def get_user(request, user_id):
 
 
 def user_create(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not supported"})
     try:
         data = json.loads(request.body)
 
@@ -132,6 +138,8 @@ def user_create(request):
 
         
 def user_update(request, user_id):
+    if request.method != "PATCH":
+        return JsonResponse({"message": "Method not supported"})
     try:
         # Получаем данные из тела запроса
         data = json.loads(request.body)
@@ -198,16 +206,17 @@ def user_update(request, user_id):
         return JsonResponse({'error': str(e)}, status=400)
 
 def user_soft_delete(request, user_id):
-    if request.method == 'PATCH':
-        try:
-            # Находим пользователя по ID
-            user = CustomUser.objects.get(id=user_id)
-            # Мягкое удаление
-            user.soft_delete()
-            return JsonResponse({'message': 'User soft deleted successfully'}, status=200)
+    if request.method != "PATCH":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        # Находим пользователя по ID
+        user = CustomUser.objects.get(id=user_id)
+        # Мягкое удаление
+        user.soft_delete()
+        return JsonResponse({'message': 'User soft deleted successfully'}, status=200)
 
-        except CustomUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
    
 def user_permanent_delete(request, user_id):
     if request.method != "DELETE":
@@ -262,8 +271,7 @@ def add_favourite_room(request, user_id):
 @csrf_exempt  
 def favourite_room_detail(request, favorite_id):
     if request.method != "GET":
-        return HttpResponseNotAllowed(["GET"])
-    
+        return JsonResponse({"message": "Method not supported"})
     favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
     
     return JsonResponse({
@@ -275,7 +283,7 @@ def favourite_room_detail(request, favorite_id):
 @csrf_exempt
 def get_favourite_rooms(request, user_id):
     if request.method != "GET":
-        return HttpResponseNotAllowed(["GET"])
+        return JsonResponse({"message": "Method not supported"})
     
     favorites = FavoriteRoom.objects.filter(user_id=user_id)
     data = []
