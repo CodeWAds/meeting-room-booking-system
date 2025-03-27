@@ -1,4 +1,6 @@
 from django.db import models
+from apps.equipment.models import Equipment
+
 
 class Location(models.Model):
     id_location = models.AutoField(primary_key=True)
@@ -13,6 +15,7 @@ class Room(models.Model):
     room_name = models.CharField(max_length=255)
     capacity = models.IntegerField()
     id_location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='rooms')
+    id_equipment = models.ManyToManyField(Equipment, related_name='rooms')
 
     def __str__(self):
         return f"{self.room_name} ({self.id_location.name})"
