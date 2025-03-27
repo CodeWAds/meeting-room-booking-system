@@ -56,15 +56,17 @@ def create_room(request, location_id):
         return JsonResponse({"message": "Method not supported"})
     data = json.loads(request.body)
     location = get_object_or_404(Location, id_location=location_id)
+    equipment_ids = data.get("id_equipment", [])
     room = Room.objects.create(room_name=data["room_name"], capacity=data["capacity"], id_location=location)
-    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity})
+    room.id_equipment.set(equipment_ids)
+    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity, "id_equipment": list(room.id_equipment.values_list('id_equipment', flat=True))})
 
 
 def room_detail(request, location_id, room_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
-    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity})
+    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity, "id_equipment": list(room.id_equipment.values_list('id_equipment', flat=True))})
 
 def update_room(request, location_id, room_id):
     if request.method != "PATCH":
@@ -73,6 +75,9 @@ def update_room(request, location_id, room_id):
     data = json.loads(request.body)
     room.room_name = data.get("room_name", room.room_name)
     room.capacity = data.get("capacity", room.capacity)
+    if "id_equipment" in data:
+        equipment_ids = data["id_equipment"]
+        room.id_equipment.set(equipment_ids)
     room.save()
     return JsonResponse({"message": "Room updated", "id_room": room.id_room})
 

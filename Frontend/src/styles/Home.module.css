@@ -1,0 +1,10 @@
+.container {
+  width: 100%;
+  min-height: 100vh; 
+  background-color: rgb(17, 24, 40); 
+  color: #fff;
+ 
+  padding: 20px;
+  box-sizing: border-box;
+  margin: 0;
+}
