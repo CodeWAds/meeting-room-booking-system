@@ -1,0 +1,203 @@
+.filters {
+  margin: 20px 0;
+  width: 100%;
+  
+}
+
+.filterRow {
+  margin-bottom: 20px;
+  
+}
+
+.filterItem label {
+  display: block;
+  
+  font-size: 14px;
+  line-height: 16px;
+  color: rgb(201, 201, 201);
+}
+
+.filterInput {
+  display: flex;
+  gap: 10px;
+  flex-direction: row;
+  margin-top: 10px;
+}
+
+.filterInput select {
+  padding: 10px 30px 10px 10px;
+  border-radius: 50px;
+  border: none;
+  background: rgb(32, 41, 56);
+  color: rgb(201, 201, 201);
+  font-size: 14px;
+  width: 200px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('../../public/svg/arrow-down.svg'); /* Или ваш путь */
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  background-size: 18px;
+}
+
+.dateInputWrapper {
+  position: relative;
+  width: 200px;
+  border-radius: 50px;
+}
+
+.dateInput {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; 
+  cursor: pointer;
+  z-index: 2;
+}
+
+.dateDisplay {
+  display: block;
+  padding: 10px;
+  border-radius: 50px;
+  background: rgb(32, 41, 56);
+  color: rgb(201, 201, 201);
+  font-size: 14px;
+  pointer-events: none; /* Отключаем взаимодействие с текстом */
+}
+
+
+.dateInputWrapper::after {
+  content: url('../../public/svg/calendar.svg'); /* Используем эмодзи календаря */
+  position: absolute;
+  top: 55%;
+  right: 20px;
+  transform: translateY(-50%);
+  color: rgb(201, 201, 201);
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dateInputWrapper {
+  position: relative;
+}
+
+/* Увеличиваем область клика для иконки */
+.dateInputWrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 36px; /* Увеличиваем область клика (16px иконка + 10px с каждой стороны) */
+  height: 36px; /* Увеличиваем область клика */
+  z-index: 1; /* Под input, но над иконкой */
+}
+
+.timeSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.timeSlots button {
+  padding: 10px 10px;
+  border: none;
+  border-radius: 50px;
+  background: rgb(32, 41, 56);
+  color: rgb(201, 201, 201);
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.timeSlots button.active {
+  border: 1px solid rgb(255, 255, 255);
+}
+
+.timeSlots button:hover {
+  background-color: #3a3a5e;
+  color: #fff;
+}
+
+.labelContainer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: rgb(201, 201, 201);
+}
+
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltipTrigger {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-image: url('../../public/svg/info.svg');
+  background-repeat: no-repeat;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 16px;
+  vertical-align: middle;
+}
+
+.tooltip {
+  visibility: hidden;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: hsl(240, 30%, 24%);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  width: 200px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  color: rgb(201, 201, 201);
+}
+
+.tooltipWrapper:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .filterInput {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .timeSlots {
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .timeSlots button {
+    flex: 0 1 calc(33.33% - 10px);
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .tooltip {
+    width: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
