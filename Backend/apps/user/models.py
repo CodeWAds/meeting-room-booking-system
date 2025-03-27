@@ -1,16 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from apps.location.views import Location, Room
 
 class CustomUserManager(BaseUserManager):
-    # Метод для создания обычного пользователя
-    def create_user(self, username, id_telegram):
-        user = self.model( username=username)
-        user.set_id_telegram(id_telegram)
+    def create_user(self, username, id_telegram=None):
+        """
+        Создает обычного пользователя (без логина и пароля).
+        """
+        if not username:
+            raise ValueError("The Username must be set")
+        
+        user = self.model(username=username, id_telegram=id_telegram)
         user.set_status("active")
         user.save(using=self._db)
         return user
     
     def create_stuff(self, login, username, password=None):
+        """
+        Создает пользователя с логином и паролем (для staff).
+        """
         if not username:
             raise ValueError("The Username must be set")
         if not login:
@@ -31,20 +39,20 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=50, unique=True)
     id_telegram = models.BigIntegerField(unique=True, null=True, blank=True)
-    login = models.CharField(max_length=50, unique=True, null=True)
-    password = models.CharField(max_length=128, null=True)
+    login = models.CharField(max_length=50, unique=True, null=True, blank=True)  # Необязательное поле
+    password = models.CharField(max_length=128, null=True, blank=True)  # Необязательное поле
+
+    STATUS_CHOICES = [
+        ("active", "Active"),
+        ("ban", "Banned"),
+        ("deleted", "Deleted"),
+    ]
 
     status = models.CharField(
         max_length=20,
-        choices=[
-            ("active", "Active"),
-            ("ban", "Banned"),
-            ("deleted", "Deleted"),
-        ],
+        choices=STATUS_CHOICES,
         default="active",
     )
-
-
 
     USERNAME_FIELD = "login"
     REQUIRED_FIELDS = ["username"]
@@ -55,8 +63,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.username
     
     def set_status(self, status):
-        if status not in dict(self.STATUS_CHOICES):
-            raise ValueError("Invalid status")
+        if status not in dict(self.STATUS_CHOICES).keys():
+            raise ValueError(f"Invalid status. Allowed values are: {dict(self.STATUS_CHOICES).keys()}")
         self.status = status
         self.save()  
     
@@ -66,6 +74,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def soft_delete(self):
         self.set_status("deleted")
+
 
 class UserRole(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name= 'roles')
@@ -90,8 +99,24 @@ class UserProfile(models.Model):
 
 class ManagerProfile(models.Model):
     user_role = models.OneToOneField(UserRole, on_delete=models.CASCADE, primary_key=True)
-    #ЗАМЕНИТЬ ПРИ ДОБАВЛЕНИИ ЛОКАЦИИ
-    department = models.CharField(max_length=100)
+    location_id = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="Location")
+    def __str__(self):
+        return f"{self.user_role.user.username} (location_id: {self.location_id})"
+
+class FavoriteRoom(models.Model):
+    favorite_id = models.AutoField(primary_key=True)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='favorite_rooms')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='favorite_rooms')
+    class Meta:
+        unique_together = ('room', 'user')
+    def __str__(self):
+        return f"{self.user.username} - {self.room.name}"
+    
+
+class Location(models.Model):
+    id_location = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    address = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"{self.user_role.user.username} (Department: {self.department})"
+        return self.name
