@@ -73,7 +73,7 @@
   content: url('../../public/svg/calendar.svg'); /* Используем эмодзи календаря */
   position: absolute;
   top: 55%;
-  right: 20px;
+  right: 7px;
   transform: translateY(-50%);
   color: rgb(201, 201, 201);
   font-size: 18px;
@@ -95,6 +95,7 @@
   width: 36px; /* Увеличиваем область клика (16px иконка + 10px с каждой стороны) */
   height: 36px; /* Увеличиваем область клика */
   z-index: 1; /* Под input, но над иконкой */
+ 
 }
 
 .timeSlots {

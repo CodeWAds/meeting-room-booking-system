@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../styles/fav.module.css';
-import Modal from './ModalFollow'; // Импортируем модальное окно
+import Modal from './ModalFollow'; 
 
 interface Room {
   name: string;
@@ -24,12 +24,25 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
     return [];
   });
 
+  // Синхронизация с localStorage при монтировании компонента
+  useEffect(() => {
+    const syncFavourites = () => {
+      if (typeof window !== 'undefined') {
+        const savedFavourites = localStorage.getItem('favourites');
+        setFavourites(savedFavourites ? JSON.parse(savedFavourites) : []);
+      }
+    };
+    syncFavourites();
+  }, []);
+
+  // Обновление localStorage при изменении favourites
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('favourites', JSON.stringify(favourites));
     }
   }, [favourites]);
 
+  // Слушаем изменения в localStorage (для других вкладок)
   useEffect(() => {
     const handleStorageChange = () => {
       if (typeof window !== 'undefined') {
@@ -53,15 +66,15 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
     }
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false); // Состояние для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false); 
 
   const handleBookClick = () => {
-    setIsModalOpen(true); // Открываем модальное окно
-    onBookClick(); // Вызываем переданную функцию onBookClick
+    setIsModalOpen(true); 
+    onBookClick(); 
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false); // Закрываем модальное окно
+    setIsModalOpen(false); 
   };
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -137,6 +150,10 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
         className={`${styles.navbarMenu} ${isMenuOpen ? styles.active : ''}`}
         ref={menuRef}
       >
+        <div className={styles.menuHeader}>
+          <span>Ник</span>
+          <span>(карма)</span>
+        </div>
         <a href="/" onClick={handleLinkClick}>Главное</a>
         <a href="/favourites" onClick={handleLinkClick}>Избранное</a>
         <a href="/myBooking" onClick={handleLinkClick}>Мои бронирования</a>

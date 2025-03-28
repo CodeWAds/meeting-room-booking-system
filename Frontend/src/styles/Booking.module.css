@@ -1,0 +1,302 @@
+.rooms {
+  background: rgb(17, 24, 40); /* Темный фон, как на скриншоте */
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+/* Шапка с серым фоном */
+.header {
+  
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h3 {
+    font-size: 24px;
+    margin: 0;
+    color: #ffffff;
+    font-style: normal;
+    font-weight: 600;
+  }
+  
+  .roomList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 2 колонки на больших экранах */
+    gap: 20px;
+    padding: 20px; /* Отступы для карточек */
+  }
+  
+  .roomCard {
+    background-color: rgb(32, 41, 56);
+    padding: 20px;
+    border-radius: 20px;
+    position: relative;
+  }
+  
+  .roomCard h4 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  
+  .roomCard p {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: rgb(201, 201, 201);
+  }
+  
+  .roomIcons {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  
+  .roomIcon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .noBookings {
+    text-align: center;
+    color: rgb(201, 201, 201);
+    font-size: 16px;
+    padding: 20px;
+  }
+  
+  .bookingActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .bookBtn {
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: none;
+    color: rgb(255, 255, 255);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+  
+  .cancelBtn {
+    border-radius: 50px;
+
+    background: rgb(172, 49, 29);
+  }
+  
+  .cancelBtn:hover {
+    background: rgb(106, 30, 18);
+    color: rgb(201, 201, 201);
+  }
+  
+  .completeBtn {
+    background: rgb(195, 149, 29);
+    border-radius: 50px;
+  }
+  
+  .completeBtn:hover {
+    background: rgb(141, 97, 2);
+    color: rgb(201, 201, 201);
+  }
+  
+  .extendBtn {
+    border-radius: 50px;
+    background: rgb(61, 176, 9);
+  }
+  
+  .extendBtn:hover {
+    color: rgb(201,201,201);
+    background: rgb(42, 120, 6);
+  }
+  
+  .otmenaBtn {
+background-color: rgba(174, 195, 239, 0.66);
+  }
+  .otmenaBtn:hover {
+    background-color: rgba(97, 110, 138, 0.66);
+    color: rgb(201, 201, 201);
+  }
+  
+  .favorite {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    cursor: pointer;
+  }
+  
+  .favorite img {
+    width: 30px;
+    height: 30px;
+  }
+  
+  /* Стили для бургер-меню */
+  .navbarBurger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 20px;
+    cursor: pointer;
+  }
+  
+  .navbarBurger span {
+    width: 100%;
+    height: 3px;
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+  }
+  
+  .navbarMenu {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 250px;
+    height: 100%;
+    background-color: #2d3748;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    transition: right 0.3s ease;
+    z-index: 1000; /* Меню поверх всего */
+  }
+  
+  .navbarMenu.active {
+    right: 0;
+  }
+  
+  .menuHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-size: 16px;
+    flex-direction: column
+  }
+  
+  .menuHeader span:first-child {
+    font-weight: 600;
+  }
+  
+  .menuHeader span:last-child {
+    color: #cccccc;
+  }
+  
+  .navbarMenu a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 18px;
+    margin: 10px 0;
+    padding: 10px 0;
+    border-bottom: 1px solid #4a5568; /* Разделительная линия, как на скриншоте */
+  }
+  
+  .navbarMenu a:hover {
+    color: #cccccc;
+  }
+
+  /* Стили для модальных окон */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Модальное окно поверх всего */
+  }
+  
+  .modal {
+    background-color: #2d3748;
+    padding: 20px;
+    
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    color: #ffffff;
+  }
+  
+  .modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    margin-bottom: 20px;
+  }
+  
+  .modalHeader h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    
+  }
+  
+  .closeBtn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  
+  .timeSlots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .timeSlotBtn {
+    box-sizing: border-box;
+    border-radius: 40px;
+    background: rgb(32, 41, 56);
+    color: rgb(255,255,255);
+    border: none;
+    width: 110px;
+    height: 45px;
+  }
+  
+  .timeSlotBtn:hover {
+    background-color: #5a677a;
+  }
+  
+  .selectedSlot {
+    border: 1px solid rgb(201, 201, 201);
+  }
+  
+  .modalActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  
+  .modalBtn {
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  
+  @media (max-width: 768px) {
+    .roomList {
+      grid-template-columns: 1fr; /* 1 колонка на маленьких экранах */
+    }
+  
+    .bookBtn {
+      min-width: 100%;
+    }
+  }
