@@ -51,6 +51,10 @@ const Navbar: React.FC = () => {
         className={`${styles.navbarMenu} ${isMenuOpen ? styles.active : ''}`}
         ref={menuRef} 
       >
+        <div className={styles.menuHeader}>
+            <span>Ник</span>
+            <span>(карма)</span>
+          </div>
         <a href="#" onClick={handleLinkClick}>Главное</a>
         <a href="favourites" onClick={handleLinkClick}>Избранное</a>
         <a href="myBooking" onClick={handleLinkClick}>Мои бронирования</a>
