@@ -11,11 +11,8 @@ interface Room {
   icons: string[];
 }
 
-interface FavouritesProps {
-  onBookClick: () => void;
-}
-
-const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
+// Убираем FavouritesProps, так как страница не получает props извне
+const Favourites = () => {
   const [favourites, setFavourites] = useState<Room[]>(() => {
     if (typeof window !== 'undefined') {
       const savedFavourites = localStorage.getItem('favourites');
@@ -68,9 +65,11 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false); 
 
+  // Определяем onBookClick внутри компонента
   const handleBookClick = () => {
     setIsModalOpen(true); 
-    onBookClick(); 
+    // Здесь можно добавить дополнительную логику для onBookClick, если нужно
+    console.log("Book button clicked");
   };
 
   const handleCloseModal = () => {

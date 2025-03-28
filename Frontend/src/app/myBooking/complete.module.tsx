@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import styles from '../../styles/Booking.module.css';
 
+// Синхронизируем тип TimeSlot с page.tsx
 interface TimeSlot {
+  id_time_slot: number;
   time_begin: string;
   time_end: string;
+  slot_type: string;
 }
 
 interface CompleteModalProps {
@@ -43,9 +46,9 @@ const CompleteModal: React.FC<CompleteModalProps> = ({
           </button>
         </div>
         <div className={styles.timeSlots}>
-          {availableSlots.map((slot, index) => (
+          {availableSlots.map((slot) => (
             <button
-              key={index}
+              key={slot.id_time_slot} // Используем id_time_slot как ключ
               className={`${styles.timeSlotBtn} ${
                 selectedSlot === slot ? styles.selectedSlot : ''
               }`}
@@ -56,18 +59,19 @@ const CompleteModal: React.FC<CompleteModalProps> = ({
           ))}
         </div>
         <div className={styles.modalActions}>
-        <button
+          <button
             className={`${styles.modalBtn} ${styles.extendBtn}`}
             onClick={handleExtend}
             disabled={!selectedSlot} // Кнопка "Продлить" активна только если выбран слот
           >
             Продлить
           </button>
-
-          <button className={`${styles.modalBtn} ${styles.otmenaBtn}`} onClick={onClose}>
+          <button
+            className={`${styles.modalBtn} ${styles.otmenaBtn}`}
+            onClick={onClose}
+          >
             Отмена
           </button>
-
         </div>
       </div>
     </div>
