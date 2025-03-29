@@ -35,7 +35,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('../../public/svg/arrow-down.svg'); /* Или ваш путь */
+  background-image: url('../../public/svg/arrow-down.svg');
   background-repeat: no-repeat;
   background-position: right 20px center;
   background-size: 18px;

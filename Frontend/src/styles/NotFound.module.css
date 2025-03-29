@@ -5,12 +5,10 @@
     height: 100vh;
     background-color: #111828;
     margin: 0; 
-  }
-  
-  .container {
+    flex-direction: column;
     text-align: center;
   }
-  
+
   .title {
     color: #ffffff;
     font-size: 72px;

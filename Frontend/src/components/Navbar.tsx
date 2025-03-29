@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/Navbar.module.css';
+import { useStore } from '../store/app-store';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const burgerRef = useRef<HTMLDivElement>(null);
+  const store = useStore();
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -52,7 +54,7 @@ const Navbar: React.FC = () => {
         ref={menuRef} 
       >
         <div className={styles.menuHeader}>
-            <span>Ник</span>
+            <span>{store.user.first_name}</span>
             <span>(карма)</span>
           </div>
         <a href="#" onClick={handleLinkClick}>Главное</a>

@@ -6,6 +6,7 @@ import Filters from "../components/Filters";
 import Rooms from "../components/Rooms";
 import Modal from "../components/Modal";
 import styles from "../styles/Home.module.css";
+import { useStore } from "../store/app-store";
 
 interface UserData {
   id: number;
@@ -19,15 +20,16 @@ interface UserData {
 const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [userData, setUserData] = useState(null);
+  const store = useStore();
 
   useEffect(() => {
     const initializeTelegram = () => {
       if (typeof window !== "undefined") {
         try {
           TelegramWebApps.ready();
-          const data = TelegramWebApps.initDataUnsafe?.user.id;
+          const data = TelegramWebApps.initDataUnsafe.user;
           if (data) {
-            setUserData(data);
+            store.setUserData(data);
           } else {
             console.warn("Данные пользователя недоступны. Запустите приложение в Telegram Mini App.");
             setUserData(null);
@@ -55,13 +57,6 @@ const Home: React.FC = () => {
       <Filters />
       <Rooms onBookClick={handleBookClick} />
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
-      <div className={styles.userId}>
-        {userData ? (
-          <p>Ваш Telegram ID: {userData}</p>
-        ) : (
-          <p>Загрузка ID пользователя...</p>
-        )}
-      </div>
     </div>
   );
 };
