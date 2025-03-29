@@ -54,7 +54,7 @@ const Navbar: React.FC = () => {
         ref={menuRef} 
       >
         <div className={styles.menuHeader}>
-            <span>{store.user.first_name}</span>
+            <span>{store.user ? store.user.first_name : "Загрузка..."}</span>
             <span>(карма)</span>
           </div>
         <a href="#" onClick={handleLinkClick}>Главное</a>
