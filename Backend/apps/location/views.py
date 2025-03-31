@@ -4,6 +4,8 @@ from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot
 import datetime
 
+
+
 # Create your views here.
 def get_locations(request):
     if request.method != "GET":

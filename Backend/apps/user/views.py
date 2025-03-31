@@ -1,14 +1,69 @@
-from django.shortcuts import render
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from .models import CustomUser, UserProfile, ManagerProfile, UserRole, FavoriteRoom
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from apps.location.models import Room, Location
+from django.contrib.auth import authenticate, login, logout
 
 
 import  json
 
+def login_by_telegram(request):
+    if request.method == "POST":
+        JsonResponse({"message": "Method not supported"})
+        # Предполагаем, что данные могут передаваться в формате JSON или POST form-data
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+
+    telegram_id = data.get("telegram_id")
+    if not telegram_id:
+        return JsonResponse({"message": "Parameter 'telegram_id' is required."})
+
+    try:
+        telegram_id_int = int(telegram_id)
+    except ValueError:
+        return JsonResponse({"message": "Invalid telegram_id. It must be an integer."})
+    
+    try:
+        user = CustomUser.objects.get(id_telegram=telegram_id_int)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({"message": "User not found"}, status=404)
+
+    if user.status == "banned":
+        return JsonResponse({"message": "User is banned"}, status=403)
+
+    login(request, user)
+    return JsonResponse({"message": "Login via Telegram successful", "username": user.username})
+    
+    
+
+def user_login(request):
+    if request.method == "POST":
+        JsonResponse({"message": "Method not supported"})
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+
+    login_field = data.get("login")
+    password = data.get("password")
+
+    if not login_field or not password:
+        return JsonResponse({"message": "Both 'login' and 'password' fields are required."})
+    user = authenticate(request, username=login_field, password=password)
+    if user is not None:
+        login(request, user)
+        return JsonResponse({"message": "Login successful", "username": user.username})
+    else:
+        return JsonResponse({"message": "Invalid login credentials"}, status=400)
+
+
+def user_logout(request):
+    logout(request)
+    return JsonResponse({"message": "Logout successful"})
 
 def get_users(request):
     if request.method != "GET":
