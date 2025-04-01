@@ -122,6 +122,41 @@ def get_user(request, user_id):
 
 
 
+def user_create_tg(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        data = json.loads(request.body)
+
+        username = data.get('username')
+        id_telegram = data.get('id_telegram')
+
+        # Проверка на уникальность username
+        if CustomUser.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists'}, status=400)
+
+        # Создание пользователя
+        user = CustomUser(username=username, id_telegram=id_telegram)
+        status = "active"
+        user.set_status(status)
+        user.save()  # Сохраняем пользователя, чтобы получить ID
+        user_role = UserRole.objects.create(user=user, role="user")
+        UserProfile.objects.create(user_role=user_role)
+        return JsonResponse({
+            'user_id': user.user_id,
+            'username': user.username,
+            'id_telegram': user.id_telegram,
+            'status': user.status,
+            'roles': user_role.role
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 def user_create(request):
     if request.method != "POST":
         return JsonResponse({"message": "Method not supported"})
@@ -173,8 +208,6 @@ def user_create(request):
         return JsonResponse({'error': str(e)}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-    
 
 def user_update(request, user_id):
     if request.method != "PATCH":

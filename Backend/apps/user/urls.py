@@ -3,11 +3,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("login_telegram", views.login_by_telegram, name="login_by_telegram"),
-    path("login_password", views.user_login, name="user_login"),
-    path("logout", views.user_logout, name="user_logout"),
+    path("login_telegram/", views.login_by_telegram, name="login_by_telegram"),
+    path("login_password/", views.user_login, name="user_login"),
+    path("logout/", views.user_logout, name="user_logout"),
     path("", views.get_users, name="get_users"),  
     path("create-user/", views.user_create, name="create-user"),
+    path("create-user-tg/", views.user_create_tg, name="create-user-tg"),
     path("<int:user_id>/", views.get_user, name="user-detail"), 
     path('<int:user_id>/update/', views.user_update, name='update_user'),
     path('<int:user_id>/soft_delete/', views.user_soft_delete, name='user_soft_delete'),

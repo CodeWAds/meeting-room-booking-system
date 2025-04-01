@@ -3,6 +3,7 @@ import json
 from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot
 import datetime
+from apps.equipment.models import Equipment
 
 
 
@@ -68,7 +69,12 @@ def room_detail(request, location_id, room_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
-    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity, "id_equipment": list(room.id_equipment.values_list('id_equipment', flat=True))})
+    list_equip = list(room.id_equipment.values_list('id_equipment', flat=True))
+    final_equip = []
+    for i in range(len(list_equip)):
+        equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+        final_equip.append({"name" : equipment.name, "description": equipment.description})
+    return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity, "id_equipment": final_equip})
 
 def update_room(request, location_id, room_id):
     if request.method != "PATCH":
