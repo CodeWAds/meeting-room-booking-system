@@ -18,12 +18,12 @@ def login_by_telegram(request):
     except Exception:
         data = request.POST
 
-    telegram_id = data.get("telegram_id")
-    if not telegram_id:
+    id_telegram = data.get("id_telegram")
+    if not id_telegram:
         return JsonResponse({"message": "Parameter 'telegram_id' is required."})
 
     try:
-        telegram_id_int = int(telegram_id)
+        telegram_id_int = int(id_telegram)
     except ValueError:
         return JsonResponse({"message": "Invalid telegram_id. It must be an integer."})
     
