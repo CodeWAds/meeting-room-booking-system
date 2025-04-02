@@ -1,5 +1,45 @@
 import React, { useState } from 'react';
 import styles from '../styles/Filters.module.css';
+import { Calendar } from 'primereact/calendar';
+import { addLocale } from 'primereact/api';
+
+addLocale('ru', {
+  accept: 'Да',
+  addRule: 'Добавить правило',
+  am: 'до полудня',
+  apply: 'Принять',
+  cancel: 'Отмена',
+  choose: 'Выбрать',
+  chooseDate: 'Выбрать дату',
+  chooseMonth: 'Выбрать месяц',
+  chooseYear: 'Выбрать год',
+  clear: 'Очистить',
+  contains: 'Содержит',
+  custom: 'Пользовательский',
+  dateAfter: 'Дата после',
+  dateBefore: 'Дата до',
+  dateFormat: 'dd.mm.yy',
+  dateIs: 'Дата равна',
+  dateIsNot: 'Дата не равна',
+  dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+  dayNamesMin: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+  dayNamesShort: ['Вск', 'Пнд', 'Втр', 'Срд', 'Чтв', 'Птн', 'Сбт'],
+  monthNames: [
+    'Январь',
+    'Февраль',
+    'Март',
+    'Апрель',
+    'Май',
+    'Июнь',
+    'Июль',
+    'Август',
+    'Сентябрь',
+    'Октябрь',
+    'Ноябрь',
+    'Декабрь',
+  ],
+  monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+});
 
 const Filters: React.FC = () => {
   const timeSlots = [
@@ -24,10 +64,8 @@ const Filters: React.FC = () => {
     '21:00 - 21:30',
   ];
 
-  // Храним массив выбранных слотов
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-
-  const [selectedDate, setSelectedDate] = useState<string>('2025-02-28');
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   const formatDate = (date: string) => {
     if (!date) return 'ДД.ММ.ГГГГ';
@@ -35,34 +73,40 @@ const Filters: React.FC = () => {
     return `${day}.${month}.${year}`;
   };
 
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(event.target.value);
+  const handleCalendarChange = (e: { value: Date | null }) => {
+    if (e.value) {
+      const date = e.value;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      setSelectedDate(dateString);
+    } else {
+      setSelectedDate('');
+    }
   };
 
   const isConsecutive = (slots: string[]) => {
     if (slots.length < 2) return true;
-    const indices = slots.map(slot => timeSlots.indexOf(slot)).sort((a, b) => a - b);
+    const indices = slots.map((slot) => timeSlots.indexOf(slot)).sort((a, b) => a - b);
     return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
   };
 
   const handleSlotToggle = (slot: string) => {
     let newSelectedSlots = [...selectedSlots];
-
     if (selectedSlots.includes(slot)) {
-      // Убираем слот
-      newSelectedSlots = newSelectedSlots.filter(s => s !== slot);
+      newSelectedSlots = newSelectedSlots.filter((s) => s !== slot);
     } else {
-      // Добавляем слот
       newSelectedSlots.push(slot);
     }
-
-    // Проверяем, что все выделенные слоты идут подряд
     if (isConsecutive(newSelectedSlots)) {
       setSelectedSlots(newSelectedSlots);
     } else {
-      setSelectedSlots([]); // Сбрасываем, если последовательность нарушена
+      setSelectedSlots([]);
     }
   };
+
+  const calendarValue = selectedDate ? new Date(selectedDate) : null;
 
   return (
     <div className={styles.filters}>
@@ -71,13 +115,15 @@ const Filters: React.FC = () => {
           <label>Выберите дату и локацию</label>
           <div className={styles.filterInput}>
             <div className={styles.dateInputWrapper}>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                className={styles.dateInput}
+              <Calendar
+                value={calendarValue}
+                onChange={handleCalendarChange}
+                dateFormat="dd.mm.yy"
+                placeholder="ДД.ММ.ГГГГ"
+                locale="ru"
+                className={styles.customCalendar}
+                panelClassName={styles.customPanel}
               />
-              <span className={styles.dateDisplay}>{formatDate(selectedDate)}</span>
             </div>
             <select>
               <option>Локация</option>
@@ -101,7 +147,9 @@ const Filters: React.FC = () => {
             {timeSlots.map((slot, index) => (
               <button
                 key={index}
-                className={`${selectedSlots.includes(slot) ? styles.active : ''}`}
+                className={`${styles.slotButton} ${
+                  selectedSlots.includes(slot) ? styles.active : ''
+                }`}
                 onClick={() => handleSlotToggle(slot)}
               >
                 {slot}

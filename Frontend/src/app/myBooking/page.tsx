@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from '../../styles/Booking.module.css';
 import CompleteModal from './complete.module';
 import CancelModal from './cancel.module';
+import Navbar from '../../components/Navbar';
 
 // Типы данных для бронирований
 interface TimeSlot {
@@ -275,41 +276,12 @@ const MyBookingsPage: React.FC = () => {
     return now > bookingEnd;
   };
 
-  // Фильтрация бронирований: показываем только те, которые еще не завершились
   const activeBookings = bookings.filter((booking) => !isBookingFinished(booking));
 
   return (
     <div className={styles.rooms}>
-      <div className={styles.header}>
-        <h3>Текущие бронирования</h3>
-        <div
-          className={styles.navbarBurger}
-          onClick={handleMenuToggle}
-          ref={burgerRef}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div
-          className={`${styles.navbarMenu} ${isMenuOpen ? styles.active : ''}`}
-          ref={menuRef}
-        >
-          <div className={styles.menuHeader}>
-            <span>Ник</span>
-            <span>(карма)</span>
-          </div>
-          <a href="/" onClick={handleLinkClick}>
-            Главное
-          </a>
-          <a href="/favourites" onClick={handleLinkClick}>
-            Избранное
-          </a>
-          <a href="/myBooking" onClick={handleLinkClick}>
-            Мои бронирования
-          </a>
-        </div>
-      </div>
+      <Navbar title="Текущие бронирования"/>
+
       {activeBookings.length === 0 ? (
         <p className={styles.noBookings}>У вас нет текущих бронирований.</p>
       ) : (

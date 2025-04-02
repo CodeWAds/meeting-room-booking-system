@@ -10,4 +10,17 @@
 body {
   background: #111828;
   color: #C9C9C9;
+  padding: 20px;
+}
+
+
+/* Calendar */
+.p-datepicker-header {
+  background-color: #C9C9C9;
+  padding: 5px;
+  border-radius: 10px 10px 0 0;
+}
+
+.p-datepicker-other-month {
+  color: #4a4a4a
 }

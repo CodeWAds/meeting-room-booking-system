@@ -53,7 +53,7 @@ const Home: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <Navbar />
+      <Navbar title="Rooms - пространство для идей и решений"/>
       <Filters />
       <Rooms onBookClick={handleBookClick} />
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} />

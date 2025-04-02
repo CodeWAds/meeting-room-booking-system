@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/Navbar.module.css';
 import { useStore } from '../store/app-store';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  title: string;
+}
+
+const Navbar: React.FC<NavbarProps> = (props) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const burgerRef = useRef<HTMLDivElement>(null);
@@ -39,7 +43,7 @@ const Navbar: React.FC = () => {
 
   return (
     <nav className={styles.navbar}>
-      <div className={styles.navbarBrand}>Rooms - пространство для идей и решений</div>
+      <div className={styles.navbarBrand}>{props.title}</div>
       <div
         className={styles.navbarBurger}
         onClick={handleMenuToggle}
@@ -57,7 +61,7 @@ const Navbar: React.FC = () => {
             <span>{store.user ? store.user.first_name : "Загрузка..."}</span>
             <span>(карма)</span>
           </div>
-        <a href="#" onClick={handleLinkClick}>Главное</a>
+        <a href="/" onClick={handleLinkClick}>Главное</a>
         <a href="favourites" onClick={handleLinkClick}>Избранное</a>
         <a href="myBooking" onClick={handleLinkClick}>Мои бронирования</a>
       </div>
