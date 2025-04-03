@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/Navbar.module.css';
 import { useStore } from '../store/app-store';
-
-interface NavbarProps {
-  title: string;
-}
+import { NavbarProps } from '../types/interfaces';
 
 const Navbar: React.FC<NavbarProps> = (props) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

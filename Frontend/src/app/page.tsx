@@ -8,14 +8,6 @@ import Modal from "../components/Modal";
 import styles from "../styles/Home.module.css";
 import { useStore } from "../store/app-store";
 
-interface UserData {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  is_premium?: boolean;
-}
 
 const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);

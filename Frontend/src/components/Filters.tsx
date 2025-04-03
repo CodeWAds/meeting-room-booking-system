@@ -5,9 +5,13 @@ import '../CalendarLocale';
 import { getData } from '../api/api-utils';
 import { endpoints } from '../api/config';
 
+import { Chart } from 'primereact/chart';
+        
+
 const Filters: React.FC = () => {
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
+
   const [locations, setLocations] = useState<{ id: number; name: string }[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
@@ -108,10 +112,68 @@ const Filters: React.FC = () => {
     }
   };
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Количество',
+        },
+        ticks: {
+          stepSize: 1,
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Месяцы',
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+      },
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuad',
+    },
+    barThickness: 30,
+  };
+  const chartData = {
+    labels: ['Январь', 'Февраль', 'Март', 'Апрель'],
+    datasets: [
+      {
+        label: 'Продажи',
+        data: [1, 3, 4, 5],
+        backgroundColor: '#42A5F5',
+        borderColor: '#1E88E5',
+        borderWidth: 1,
+      },
+    ],
+  };
+
   const calendarValue = selectedDate ? new Date(selectedDate) : null;
 
   return (
     <div className={styles.filters}>
+      {/* <Chart type="bar" data={chartData} options={chartOptions} /> */}
       <div className={styles.filterRow}>
         <div className={styles.filterItem}>
           <label>Выберите дату и локацию</label>
