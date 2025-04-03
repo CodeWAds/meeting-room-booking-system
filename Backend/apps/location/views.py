@@ -53,8 +53,26 @@ def location_delete(request, location_id):
 def get_rooms(request, location_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
-    rooms = list(Room.objects.filter(id_location=location_id).values())
-    return JsonResponse({"rooms": rooms})
+    
+    rooms = Room.objects.filter(id_location=location_id)
+    room_list = []
+    
+    for room in rooms:
+        list_equip = list(room.id_equipment.values_list('id_equipment', flat=True))
+        final_equip = []
+        for equip_id in list_equip:
+            equipment = get_object_or_404(Equipment, id_equipment=equip_id)
+            final_equip.append({"name": equipment.name, "description": equipment.description})
+        
+        room_data = {
+            "id_room": room.id_room,
+            "room_name": room.room_name,
+            "capacity": room.capacity,
+            "id_equipment": final_equip
+        }
+        room_list.append(room_data)
+    
+    return JsonResponse({"rooms": room_list})
 
 def create_room(request, location_id):
     if request.method != "POST":
