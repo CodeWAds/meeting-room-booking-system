@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 import json
 from django.http import JsonResponse, HttpResponse
-from .models import Location, Room, TimeSlot, SpecialTimeSlot
+from .models import Location, Room, TimeSlot, SpecialTimeSlot, RoomAvailability, LocationAvailability, AvailabilityReason
 from datetime import datetime, timedelta
 from apps.equipment.models import Equipment
 from django.db.models import Count, Q
@@ -263,3 +263,419 @@ def get_available_rooms(request):
             "location_id": location_id,
             "available_rooms": room_list
         })
+
+
+def availability_room(request, location_id, room_id):
+        if request.method != "GET":
+            return JsonResponse({"message": "Invalid metod"})
+        """
+        Получить все периоды недоступности для комнаты
+        GET /locations/<location_id>/rooms/<room_id>/availability/
+        """
+        room = get_object_or_404(Room, id=room_id, location_id=location_id)
+        availabilities = RoomAvailability.objects.filter(room=room)
+        
+        data = [
+            {
+                'id': av.id_status_room,
+                'room_id': av.room_id,
+                'begin_datetime': av.begin_datetime,
+                'end_datetime': av.end_datetime,
+                'reason': {
+                    'id': av.reason.id,
+                    'name': av.reason.name
+                } if av.reason else None
+            }
+            for av in availabilities
+        ]
+        
+        return JsonResponse(data)
+
+def create_availability_room(request, location_id, room_id):
+    if request.method != "POST":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Создать новый период недоступности
+    POST /locations/<location_id>/rooms/<room_id>/availability/create_availability/
+    """
+    room = get_object_or_404(Room, id=room_id, location_id=location_id)
+
+    required_fields = ['begin_datetime', 'end_datetime']
+    for field in required_fields:
+        if field not in request.data:
+            return JsonResponse(
+                {'error': f'Отсутствует обязательное поле: {field}'}
+            )
+    
+    try:
+        begin = datetime.fromisoformat(request.data['begin_datetime'])
+        end = datetime.fromisoformat(request.data['end_datetime'])
+        
+        if begin >= end:
+            return JsonResponse(
+                {'error': 'Дата начала должна быть раньше даты окончания'}
+            )
+        
+        # Создание записи
+        availability = RoomAvailability.objects.create(
+            room=room,
+            begin_datetime=begin,
+            end_datetime=end,
+            reason_id=request.data.get('reason_id')
+        )
+        
+        response_data = {
+            'id': availability.id_status_room,
+            'room_id': availability.room_id,
+            'begin_datetime': availability.begin_datetime,
+            'end_datetime': availability.end_datetime,
+            'reason_id': availability.reason_id,
+            'message': 'Период недоступности успешно создан'
+        }
+        
+        return JsonResponse(response_data)
+    
+    except ValueError as e:
+        return JsonResponse({'error': 'Неверный формат даты. Используйте ISO формат (YYYY-MM-DD HH:MM:SS)'})
+    
+def availability_detail_room(request, location_id, room_id, availability_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Получить детали периода недоступности
+    GET /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/
+    """
+    availability = get_object_or_404(
+        RoomAvailability, 
+        id_status_room=availability_id, 
+        room_id=room_id, 
+        room__location_id=location_id
+    )
+    
+    data = {
+        'id': availability.id_status_room,
+        'room_id': availability.room_id,
+        'begin_datetime': availability.begin_datetime,
+        'end_datetime': availability.end_datetime,
+        'reason': {
+            'id': availability.reason.id,
+            'name': availability.reason.name
+        } if availability.reason else None,
+        'location_id': location_id
+    }
+    return JsonResponse(data)
+
+def update_availability_room(request, location_id, room_id, availability_id):
+    if request.method != "PATCH":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Обновить период недоступности
+    PUT /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/update
+    """
+    availability = get_object_or_404(
+        RoomAvailability, 
+        id_status_room=availability_id, 
+        room_id=room_id, 
+        room__location_id=location_id
+    )
+    
+    # Обновление полей
+    if 'begin_datetime' in request.data:
+        availability.begin_datetime = datetime.fromisoformat(request.data['begin_datetime'])
+    if 'end_datetime' in request.data:
+        availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
+    if 'reason_id' in request.data:
+        availability.reason_id = request.data['reason_id']
+    
+    # Проверка корректности дат
+    if availability.begin_datetime >= availability.end_datetime:
+        return JsonResponse(
+            {'error': 'Дата начала должна быть раньше даты окончания'})
+    
+    availability.save()
+    
+    response_data = {
+        'id': availability.id_status_room,
+        'room_id': availability.room_id,
+        'begin_datetime': availability.begin_datetime,
+        'end_datetime': availability.end_datetime,
+        'reason_id': availability.reason_id,
+        'message': 'Период недоступности успешно обновлен'
+    }
+    
+    return JsonResponse(response_data)
+
+def delete_availability_room(request, location_id, room_id, availability_id):
+        if request.method != "DELETE":
+            return JsonResponse({"message": "Invalid metod"})
+        """
+        Удалить период недоступности
+        DELETE /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/delete
+        """
+        availability = get_object_or_404(
+            RoomAvailability, 
+            id_status_room=availability_id, 
+            room_id=room_id, 
+            room__location_id=location_id
+        )
+        
+        try:
+            availability.delete()
+            return JsonResponse({'message': 'Период недоступности успешно удален'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+        
+
+def availability_loc(request, location_id):
+        if request.method != "GET":
+            return JsonResponse({"message": "Invalid metod"})
+        """
+        Получить все периоды недоступности для комнаты
+        GET /locations/<location_id>/rooms/<room_id>/availability/
+        """
+        location = get_object_or_404(Location, location_id=location_id)
+        availabilities = LocationAvailability.objects.filter(location_id=location_id)
+        
+        data = [
+            {
+                'id': av.id_status_room,
+                'room_id': av.room_id,
+                'begin_datetime': av.begin_datetime,
+                'end_datetime': av.end_datetime,
+                'reason': {
+                    'id': av.reason.id,
+                    'name': av.reason.name
+                } if av.reason else None
+            }
+            for av in availabilities
+        ]
+        
+        return JsonResponse(data)
+
+def create_availability_loc(request, location_id, room_id):
+    if request.method != "POST":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Создать новый период недоступности
+    POST /locations/<location_id>/rooms/<room_id>/availability/create_availability/
+    """
+    location = get_object_or_404(Location, location_id=location_id)
+
+    required_fields = ['begin_datetime', 'end_datetime']
+    for field in required_fields:
+        if field not in request.data:
+            return JsonResponse(
+                {'error': f'Отсутствует обязательное поле: {field}'}
+            )
+    
+    try:
+        begin = datetime.fromisoformat(request.data['begin_datetime'])
+        end = datetime.fromisoformat(request.data['end_datetime'])
+        
+        if begin >= end:
+            return JsonResponse(
+                {'error': 'Дата начала должна быть раньше даты окончания'}
+            )
+        
+        # Создание записи
+        availability = LocationAvailability.objects.create(
+            location=location,
+            begin_datetime=begin,
+            end_datetime=end,
+            reason_id=request.data.get('reason_id')
+        )
+        
+        response_data = {
+            'id': availability.id_status_room,
+            'location_id': availability.location,
+            'begin_datetime': availability.begin_datetime,
+            'end_datetime': availability.end_datetime,
+            'reason_id': availability.reason_id,
+            'message': 'Период недоступности успешно создан'
+        }
+        
+        return JsonResponse(response_data)
+    
+    except ValueError as e:
+        return JsonResponse({'error': 'Неверный формат даты. Используйте ISO формат (YYYY-MM-DD HH:MM:SS)'})
+    
+def availability_detail_loc(request, location_id, room_id, availability_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Получить детали периода недоступности
+    GET /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/
+    """
+    availability = get_object_or_404(
+        RoomAvailability, 
+        id_status_room=availability_id, 
+        room_id=room_id, 
+        room__location_id=location_id
+    )
+    
+    data = {
+        'id': availability.id_status_room,
+        'room_id': availability.room_id,
+        'begin_datetime': availability.begin_datetime,
+        'end_datetime': availability.end_datetime,
+        'reason': {
+            'id': availability.reason.id,
+            'name': availability.reason.name
+        } if availability.reason else None,
+        'location_id': location_id
+    }
+    return JsonResponse(data)
+
+def update_availability_loc(request, location_id, room_id, availability_id):
+    if request.method != "PATCH":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Обновить период недоступности
+    PUT /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/update
+    """
+    availability = get_object_or_404(
+        LocationAvailability, 
+        id_status_room=availability_id, 
+        room_id=room_id, 
+        room__location_id=location_id
+    )
+    
+    # Обновление полей
+    if 'begin_datetime' in request.data:
+        availability.begin_datetime = datetime.fromisoformat(request.data['begin_datetime'])
+    if 'end_datetime' in request.data:
+        availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
+    if 'reason_id' in request.data:
+        availability.reason_id = request.data['reason_id']
+    
+    # Проверка корректности дат
+    if availability.begin_datetime >= availability.end_datetime:
+        return JsonResponse(
+            {'error': 'Дата начала должна быть раньше даты окончания'})
+    
+    availability.save()
+    
+    response_data = {
+        'id': availability.id_status_room,
+        'location_id': availability.location,
+        'begin_datetime': availability.begin_datetime,
+        'end_datetime': availability.end_datetime,
+        'reason_id': availability.reason_id,
+        'message': 'Период недоступности успешно обновлен'
+    }
+    
+    return JsonResponse(response_data)
+
+def delete_availability_loc(request, location_id, room_id, availability_id):
+        if request.method != "DELETE":
+            return JsonResponse({"message": "Invalid metod"})
+        """
+        Удалить период недоступности
+        DELETE /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/delete
+        """
+        availability = get_object_or_404(
+            LocationAvailability, 
+            id_status_room=availability_id, 
+            location=location_id
+        )
+        
+        try:
+            availability.delete()
+            return JsonResponse({'message': 'Период недоступности успешно удален'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+
+
+def availability_reason(request):
+    if request.method != "GET":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Получить все причины недоступности
+    GET /availability/reason/
+    """
+    reasons = AvailabilityReason.objects.all()
+    
+    data = [
+        {
+            'id': reason.id_reason,
+            'name': reason.name
+        }
+        for reason in reasons
+    ]
+    
+    return JsonResponse(data)
+
+
+def create_availability_reason(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Создать новую причину недоступности
+    POST /availability/reason/create_availability/
+    """
+    if 'name' not in request.data or not request.data['name'].strip():
+        return JsonResponse({'error': 'Поле "name" обязательно и не может быть пустым'})
+    try:
+        reason = AvailabilityReason.objects.create(
+            name=request.data['name'].strip()
+        )
+        
+        response_data = {
+            'id': reason.id_reason,
+            'name': reason.name,
+            'message': 'Причина недоступности успешно создана'
+        }
+        
+        return JsonResponse(response_data)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+def update_availability_reason(request):
+    if request.method != "PATCH":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Обновить причину недоступности
+    PUT /availability/reason/update/
+    """
+    if 'id' not in request.data:
+        return JsonResponse({'error': 'Необходимо указать ID причины для обновления'})
+    
+    if 'name' not in request.data or not request.data['name'].strip():
+        return JsonResponse({'error': 'Поле "name" обязательно и не может быть пустым'})
+    
+    try:
+        reason = get_object_or_404(AvailabilityReason, id_reason=request.data['id'])
+        reason.name = request.data['name']
+        reason.save()
+        response_data = {
+            'id': reason.id_reason,
+            'name': reason.name,
+            'message': 'Причина недоступности успешно обновлена'
+        }
+        
+        return JsonResponse(response_data)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+
+def delete_availability_reason(request):
+    if request.method != "DELETE":
+        return JsonResponse({"message": "Invalid metod"})
+    """
+    Удалить причину недоступности
+    DELETE /availability/reason/delete/
+    """
+    if 'id' not in request.data:
+        return JsonResponse({'error': 'Необходимо указать ID причины для удаления'})
+    
+    try:
+        reason = get_object_or_404(AvailabilityReason, id_reason=request.data['id'])
+        reason.delete()
+        
+        return JsonResponse({'message': 'Причина недоступности успешно удалена'})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
