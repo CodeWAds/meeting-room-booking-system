@@ -219,3 +219,51 @@ def room_time_slot_stats(request, location_id, room_id):
             "end": today.strftime("%Y-%m-%d") if period != 'all' else "All time"
         }
     })
+
+
+def get_upcoming_bookings_for_notifications(request):
+    """Получение предстоящих бронирований со статусом 'pending'"""
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"}, status=405)
+
+    try:
+        now = timezone.now()
+        time_threshold = now + timedelta(hours=24)
+        
+        # Основной запрос с проверкой на None
+        upcoming_bookings = Booking.objects.filter(
+            date__gte=now.date(),
+            date__lte=time_threshold.date(),
+            user__id_telegram__isnull=False,
+            status="pending"
+        ).select_related('user', 'room').prefetch_related('slot')
+        
+        result = []
+        for booking in upcoming_bookings:
+            # Фильтр слотов с проверкой даты
+            slots_filter = booking.slot.all()
+            if booking.date == now.date():
+                slots_filter = slots_filter.filter(time_begin__gte=now.time())
+            
+            if slots_filter.exists() or booking.date > now.date():
+                result.append({
+                    "user_id": booking.user.user_id,
+                    "telegram_id": booking.user.id_telegram,
+                    "username": booking.user.username,
+                    "booking_id": booking.id_booking,
+                    "room_name": booking.room.room_name,
+                    "date": booking.date.strftime("%Y-%m-%d"),
+                    "time_slots": [
+                        {
+                            "time_begin": slot.time_begin.strftime("%H:%M"),
+                            "time_end": slot.time_end.strftime("%H:%M")
+                        }
+                        for slot in slots_filter
+                    ],
+                    "status": booking.status
+                })
+        
+        return JsonResponse({"notifications": result}, status=200)
+    
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

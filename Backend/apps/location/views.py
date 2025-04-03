@@ -103,8 +103,28 @@ def delete_room(request, location_id, room_id):
 def get_time_slot(request, location_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
-    time_slots = list(TimeSlot.objects.filter(id_location=location_id).values())
-    return JsonResponse({"time_slots": time_slots})
+    
+    time_slots = TimeSlot.objects.filter(id_location=location_id)
+    time_slot_list = []
+    
+    for time_slot in time_slots:
+        slot_data = {
+            "id_time_slot": time_slot.id_time_slot,
+            "time_begin": str(time_slot.time_begin),
+            "time_end": str(time_slot.time_end),
+            "slot_type": time_slot.slot_type
+        }
+        
+        if time_slot.slot_type == "special":
+            try:
+                special_slot = SpecialTimeSlot.objects.get(id_time_slot=time_slot.id_time_slot)
+                slot_data["special_date"] = special_slot.date
+            except SpecialTimeSlot.DoesNotExist:
+                slot_data["special_date"] = None
+        
+        time_slot_list.append(slot_data)
+    
+    return JsonResponse({"time_slots": time_slot_list})
 
 def create_time_slot(request, location_id):
     if request.method != "POST":

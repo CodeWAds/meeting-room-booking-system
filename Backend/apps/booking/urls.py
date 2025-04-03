@@ -11,5 +11,7 @@ urlpatterns = [
     path('user/<int:user_id>/', views.get_user_bookings, name='get_user_bookings'),
 
     path('<int:location_id>/rooms/<int:room_id>/time_slot_stats/', views.room_time_slot_stats, name='room_hourly_usage_stats'),
+
+    path('upcoming-notifications/', views.get_upcoming_bookings_for_notifications, name='upcoming_notifications'),
 ]
 
