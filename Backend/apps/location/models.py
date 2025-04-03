@@ -40,3 +40,4 @@ class SpecialTimeSlot(models.Model):
 
     def __str__(self):
         return f"Special slot on {self.date} ({self.id_time_slot})"
+
