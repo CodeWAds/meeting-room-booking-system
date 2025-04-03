@@ -24,3 +24,46 @@ body {
 .p-datepicker-other-month {
   color: #4a4a4a
 }
+
+.customCalendar input::-webkit-input-placeholder{
+  color: #c9c9c9;
+  font-size: 14px;
+
+}
+
+.customCalendar input {
+  padding: 10px 30px 10px 10px;
+  border-radius: 50px;
+  border: none;
+  background: rgb(32, 41, 56);
+  color: #c9c9c9;
+  font-size: 14px;
+  max-width: 200px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('../../public/svg/calendar.svg');
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  background-size: 18px;
+}
+
+.customPanel {
+  background-color: #2d3748;
+  border-radius: 10px;
+}
+
+.customPanel button {
+  border: none;
+  margin: 5px;
+  background-color: #C9C9C9;
+}
+
+.p-datepicker-calendar thead tr th {
+ padding: 10px;
+}
+
+.p-datepicker-calendar tbody tr td {
+  padding: 10px;
+}
+

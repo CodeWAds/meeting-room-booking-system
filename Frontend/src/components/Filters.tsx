@@ -1,45 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../styles/Filters.module.css';
 import { Calendar } from 'primereact/calendar';
-import { addLocale } from 'primereact/api';
-
-addLocale('ru', {
-  accept: 'Да',
-  addRule: 'Добавить правило',
-  am: 'до полудня',
-  apply: 'Принять',
-  cancel: 'Отмена',
-  choose: 'Выбрать',
-  chooseDate: 'Выбрать дату',
-  chooseMonth: 'Выбрать месяц',
-  chooseYear: 'Выбрать год',
-  clear: 'Очистить',
-  contains: 'Содержит',
-  custom: 'Пользовательский',
-  dateAfter: 'Дата после',
-  dateBefore: 'Дата до',
-  dateFormat: 'dd.mm.yy',
-  dateIs: 'Дата равна',
-  dateIsNot: 'Дата не равна',
-  dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
-  dayNamesMin: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  dayNamesShort: ['Вск', 'Пнд', 'Втр', 'Срд', 'Чтв', 'Птн', 'Сбт'],
-  monthNames: [
-    'Январь',
-    'Февраль',
-    'Март',
-    'Апрель',
-    'Май',
-    'Июнь',
-    'Июль',
-    'Август',
-    'Сентябрь',
-    'Октябрь',
-    'Ноябрь',
-    'Декабрь',
-  ],
-  monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
-});
+import '../CalendarLocale';
 
 const Filters: React.FC = () => {
   const timeSlots = [
@@ -121,8 +83,8 @@ const Filters: React.FC = () => {
                 dateFormat="dd.mm.yy"
                 placeholder="ДД.ММ.ГГГГ"
                 locale="ru"
-                className={styles.customCalendar}
-                panelClassName={styles.customPanel}
+                className="customCalendar"
+                panelClassName="customPanel"
               />
             </div>
             <select>
