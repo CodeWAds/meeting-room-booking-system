@@ -2,7 +2,7 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../../../styles/auth.module.css';
+import styles from '../../styles/auth.module.css';
 
 const AdminAuthPage: React.FC = () => {
   const [login, setLogin] = useState<string>('');
