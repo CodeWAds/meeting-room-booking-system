@@ -336,23 +336,23 @@ def add_favourite_room(request, user_id):
         return JsonResponse({
             "message": message,
             "favorite_id": favorite.favorite_id,
-            "room_id": favorite.room.id,
-            "user_id": favorite.user.id,
+            "room_id": favorite.room.id_room,
+            "user_id": favorite.user.user_id,
         })
 
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Неверный формат JSON.")
 
 @csrf_exempt  
-def favourite_room_detail(request, favorite_id):
+def favourite_room_detail(request,user_id, favorite_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
     
     return JsonResponse({
         "favorite_id": favorite.favorite_id,
-        "room_id": favorite.room.id,
-        "user_id": favorite.user.id,
+        "room_id": favorite.room.id_room,
+        "user_id": favorite.user.user_id,
     })
 
 @csrf_exempt
@@ -370,7 +370,7 @@ def get_favourite_rooms(request, user_id):
         })
     return JsonResponse(data, safe=False)
 
-def delete_favourite_room(request, favorite_id):
+def delete_favourite_room(request,user_id, favorite_id):
     if request.method != "DELETE":
         return HttpResponseNotAllowed(["DELETE"])
     
