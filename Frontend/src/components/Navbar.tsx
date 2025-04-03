@@ -61,7 +61,7 @@ const Navbar: React.FC<NavbarProps> = (props) => {
             <span>{store.user ? store.user.first_name : "Загрузка..."}</span>
             <span>(карма)</span>
           </div>
-        <a href="/" onClick={handleLinkClick}>Главное</a>
+        <a href="/" onClick={handleLinkClick}>Главная</a>
         <a href="favourites" onClick={handleLinkClick}>Избранное</a>
         <a href="myBooking" onClick={handleLinkClick}>Мои бронирования</a>
       </div>

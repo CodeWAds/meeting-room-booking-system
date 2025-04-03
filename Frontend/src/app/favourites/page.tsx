@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import styles from '../../styles/Fav.module.css';
+import styles from '../../styles/fav.module.css';
 import Modal from './ModalFollow';
 import Navbar from '../../components/Navbar';
 

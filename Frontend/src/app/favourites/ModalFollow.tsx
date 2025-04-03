@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../styles/ModalFollow.module.css';
+import { Calendar } from 'primereact/calendar';
+import '../../CalendarLocale';
 
 interface ModalProps {
   isOpen: boolean;
@@ -30,7 +32,7 @@ const timeSlots = [
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>('2025-02-28');
+  const [selectedDate, setSelectedDate] = useState<string>();
 
   // Проверяет, идут ли выбранные слоты подряд
   const isConsecutive = (slots: string[]) => {
@@ -61,10 +63,24 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
     return `${day}.${month}.${year}`;
   };
 
+  const handleCalendarChange = (e: { value: Date | null }) => {
+    if (e.value) {
+      const date = e.value;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      setSelectedDate(dateString);
+    } else {
+      setSelectedDate('');
+    }
+  };
+
+
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(event.target.value);
   };
-
+  const calendarValue = selectedDate ? new Date(selectedDate) : null;
   if (!isOpen) return null;
 
   return (
@@ -79,13 +95,15 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
               <label>Выберите дату и локацию</label>
               <div className={styles.filterInput}>
                 <div className={styles.dateInputWrapper}>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    className={styles.dateInput}
+                  <Calendar
+                    value={calendarValue}
+                    onChange={handleCalendarChange}
+                    dateFormat="dd.mm.yy"
+                    placeholder="ДД.ММ.ГГГГ"
+                    locale='ru'
+                    className="customCalendar"
+                    panelClassName="customPanel"
                   />
-                  <span className={styles.dateDisplay}>{formatDate(selectedDate)}</span>
                 </div>
               </div>
             </div>
