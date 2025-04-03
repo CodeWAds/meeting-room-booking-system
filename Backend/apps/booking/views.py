@@ -222,7 +222,7 @@ def room_time_slot_stats(request, location_id, room_id):
 
 
 def get_upcoming_bookings_for_notifications(request):
-    """Получение предстоящих бронирований со статусом 'pending'"""
+    """Получение предстоящих бронирований со статусом 'pending' с информацией о локации"""
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"}, status=405)
 
@@ -230,13 +230,12 @@ def get_upcoming_bookings_for_notifications(request):
         now = timezone.now()
         time_threshold = now + timedelta(hours=24)
         
-        # Основной запрос с проверкой на None
         upcoming_bookings = Booking.objects.filter(
             date__gte=now.date(),
             date__lte=time_threshold.date(),
             user__id_telegram__isnull=False,
             status="pending"
-        ).select_related('user', 'room').prefetch_related('slot')
+        ).select_related('user', 'room', 'room__id_location').prefetch_related('slot')
         
         result = []
         for booking in upcoming_bookings:
@@ -246,12 +245,19 @@ def get_upcoming_bookings_for_notifications(request):
                 slots_filter = slots_filter.filter(time_begin__gte=now.time())
             
             if slots_filter.exists() or booking.date > now.date():
+                # Получаем информацию о локации из связанной модели
+                location = booking.room.id_location
+                
                 result.append({
-                    "user_id": booking.user.user_id,
+                    "id_user": booking.user.id_user,
                     "telegram_id": booking.user.id_telegram,
                     "username": booking.user.username,
                     "booking_id": booking.id_booking,
+                    "room_id": booking.room.id_room,
                     "room_name": booking.room.room_name,
+                    "location_id": location.id_location if location else None,
+                    "location_name": location.name if location else "Не указана",
+                    "location_address": location.address if location else "Адрес не указан",
                     "date": booking.date.strftime("%Y-%m-%d"),
                     "time_slots": [
                         {
