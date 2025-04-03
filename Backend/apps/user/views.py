@@ -18,6 +18,7 @@ def login_by_telegram(request):
     except Exception:
         data = request.POST
 
+    username = data.get("username")
     id_telegram = data.get("id_telegram")
     if not id_telegram:
         return JsonResponse({"message": "Parameter 'telegram_id' is required."})
@@ -30,7 +31,7 @@ def login_by_telegram(request):
     try:
         user = CustomUser.objects.get(id_telegram=telegram_id_int)
     except CustomUser.DoesNotExist:
-        return JsonResponse({"message": "User not found"}, status=404)
+        user_create_tg(username, id_telegram)
 
     if user.status == "banned":
         return JsonResponse({"message": "User is banned"}, status=403)
@@ -54,6 +55,7 @@ def user_login(request):
     if not login_field or not password:
         return JsonResponse({"message": "Both 'login' and 'password' fields are required."})
     user = authenticate(request, username=login_field, password=password)
+
     if user is not None:
         login(request, user)
         return JsonResponse({"message": "Login successful", "username": user.username})
@@ -89,16 +91,16 @@ def get_users(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-def get_user(request, user_id):
+def get_user(request, id_user):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"}, status=405)
 
     try:
-        user = get_object_or_404(CustomUser, user_id=user_id)
+        user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
 
         data = {
-            'user_id': user.user_id,
+            'id_user': user.id_user,
             'username': user.username,
             'status': user.status,
             'roles': roles
@@ -122,17 +124,10 @@ def get_user(request, user_id):
 
 
 
-def user_create_tg(request):
-    if request.method != "POST":
-        return JsonResponse({"message": "Method not supported"})
+def user_create_tg(username, id_telegram):
     try:
-        data = json.loads(request.body)
-
-        username = data.get('username')
-        id_telegram = data.get('id_telegram')
-
         # Проверка на уникальность username
-        if CustomUser.objects.filter(username=username).exists():
+        if CustomUser.objects.filter(id_telegram=id_telegram).exists():
             return JsonResponse({'error': 'Username already exists'}, status=400)
 
         # Создание пользователя
@@ -143,7 +138,7 @@ def user_create_tg(request):
         user_role = UserRole.objects.create(user=user, role="user")
         UserProfile.objects.create(user_role=user_role)
         return JsonResponse({
-            'user_id': user.user_id,
+            'id_user': user.id_user,
             'username': user.username,
             'id_telegram': user.id_telegram,
             'status': user.status,
@@ -195,7 +190,7 @@ def user_create(request):
                 ManagerProfile.objects.create(user_role=user_role, location_id=location)
 
         return JsonResponse({
-            'user_id': user.user_id,
+            'id_user': user.id_user,
             'username': user.username,
             'login': user.login if user.login else None,
             'status': user.status,
@@ -209,7 +204,7 @@ def user_create(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-def user_update(request, user_id):
+def user_update(request, id_user):
     if request.method != "PATCH":
         return JsonResponse({"message": "Method not supported"}, status=405)
     try:
@@ -223,8 +218,8 @@ def user_update(request, user_id):
         location_id = data.get('location_id')
         roles = data.get('roles', [])
 
-        # Находим пользователя по user_id
-        user = get_object_or_404(CustomUser, user_id=user_id)
+        # Находим пользователя по id_user
+        user = get_object_or_404(CustomUser, id_user=id_user)
 
         # Обновление полей пользователя
         if username:
@@ -255,7 +250,7 @@ def user_update(request, user_id):
                 ManagerProfile.objects.update_or_create(user_role=user_role, defaults={'location_id': location})
 
         return JsonResponse({
-            'user_id': user.user_id,
+            'id_user': user.id_user,
             'username': user.username,
             'login': user.login if user.login else None,
             'status': user.status,
@@ -271,12 +266,12 @@ def user_update(request, user_id):
 
 
 
-def user_soft_delete(request, user_id):
+def user_soft_delete(request, id_user):
     if request.method != "PATCH":
         return JsonResponse({"message": "Method not supported"})
     try:
         # Находим пользователя по ID
-        user = CustomUser.objects.get(user_id=user_id)
+        user = CustomUser.objects.get(id_user=id_user)
         # Мягкое удаление
         user.soft_delete()
         return JsonResponse({'message': 'User soft deleted successfully'}, status=200)
@@ -285,13 +280,13 @@ def user_soft_delete(request, user_id):
         return JsonResponse({'error': 'User not found'}, status=404)
 
 
-def user_permanent_delete(request, user_id):
+def user_permanent_delete(request, id_user):
     if request.method != "DELETE":
         return JsonResponse({"message": "Method not supported"}, status=405)
     
     try:
         # Находим пользователя по ID
-        user = CustomUser.objects.get(user_id=user_id)
+        user = CustomUser.objects.get(id_user=id_user)
 
         # Полное удаление
         UserRole.objects.filter(user=user).delete()
@@ -313,7 +308,7 @@ def user_permanent_delete(request, user_id):
         
 
 @csrf_exempt
-def add_favourite_room(request, user_id):
+def add_favourite_room(request, id_user):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
 
@@ -325,7 +320,7 @@ def add_favourite_room(request, user_id):
         
         # Получаем связанные объекты
         room = get_object_or_404(Room, pk=room_id)
-        user = get_object_or_404(CustomUser, pk=user_id)
+        user = get_object_or_404(CustomUser, pk=id_user)
         
         favorite, created = FavoriteRoom.objects.get_or_create(room=room, user=user)
         if created:
@@ -337,14 +332,14 @@ def add_favourite_room(request, user_id):
             "message": message,
             "favorite_id": favorite.favorite_id,
             "room_id": favorite.room.id_room,
-            "user_id": favorite.user.user_id,
+            "id_user": favorite.user.id_user,
         })
 
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Неверный формат JSON.")
 
 @csrf_exempt  
-def favourite_room_detail(request,user_id, favorite_id):
+def favourite_room_detail(request,id_user, favorite_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
@@ -352,25 +347,24 @@ def favourite_room_detail(request,user_id, favorite_id):
     return JsonResponse({
         "favorite_id": favorite.favorite_id,
         "room_id": favorite.room.id_room,
-        "user_id": favorite.user.user_id,
+        "id_user": favorite.user.id_user,
     })
 
-@csrf_exempt
-def get_favourite_rooms(request, user_id):
+def get_favourite_rooms(request, id_user):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     
-    favorites = FavoriteRoom.objects.filter(user_id=user_id)
+    favorites = FavoriteRoom.objects.filter(id_user=id_user)
     data = []
     for fav in favorites:
         data.append({
             "favorite_id": fav.favorite_id,
             "room_id": fav.room.id,
-            "user_id": fav.user.id,
+            "id_user": fav.user.id,
         })
     return JsonResponse(data, safe=False)
 
-def delete_favourite_room(request,user_id, favorite_id):
+def delete_favourite_room(request,id_user, favorite_id):
     if request.method != "DELETE":
         return HttpResponseNotAllowed(["DELETE"])
     

@@ -36,7 +36,7 @@ class CustomUserManager(BaseUserManager):
     
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    user_id = models.AutoField(primary_key=True)
+    id_user = models.AutoField(primary_key=True)
     username = models.CharField(max_length=50, unique=True)
     id_telegram = models.BigIntegerField(unique=True, null=True, blank=True)
     login = models.CharField(max_length=50, unique=True, null=True, blank=True)  # Необязательное поле

@@ -4,6 +4,7 @@ from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot
 import datetime
 from apps.equipment.models import Equipment
+from django.db.models import Q
 
 
 
@@ -134,7 +135,7 @@ def time_slot_detail(request, location_id, slot_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     time_slot = get_object_or_404(TimeSlot, id_time_slot=slot_id, id_location=location_id)
-    special = get_object_or_404(SpecialTimeSlot, id_time_slot = slot_id)
+    special = getattr(time_slot, 'special_slot', None)
     if time_slot.slot_type == "regular":
         return JsonResponse({"id_time_slot": time_slot.id_time_slot, "time_begin": str(time_slot.time_begin), "time_end": str(time_slot.time_end), "slot_type": time_slot.slot_type})
     if time_slot.slot_type == "special":
@@ -186,23 +187,58 @@ def delete_time_slot(request, location_id, slot_id):
 def get_available_rooms(request):
     if request.method != "GET":
         return JsonResponse({"message": "Invalid metod"})
-    data = json.loads(request.body)
-    location_id = data['location']  
-    date_str = data['date']    
-    time_slot_id = request.get('timeslot')  
-    time_slot = list(TimeSlot.objects.filter(id_time_slot = time_slot_id))
+    try:
+            data = json.loads(request.body)
+            location_id = data.get('location')
+            date_str = data.get('date')
+            time_slot_ids = data.get('time_slot', [])
+            
+            if not all([location_id, date_str, time_slot_ids]):
+                return JsonResponse({"error": "Missing required parameters"}, status=400)
+                
+    except (json.JSONDecodeError, KeyError) as e:
+        return JsonResponse({"error": "Invalid request data"}, status=400)
 
-    date = datetime.strptime(date_str, "%Y-%m-%d")
+    try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+    try:
+            time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
+            if not time_slots.exists():
+                return JsonResponse({"error": "No valid time slots found"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Error retrieving time slots"}, status=500)
+
+    time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
+    if not time_slots.exists():
+        return JsonResponse({"error": "No valid time slots found"}, status=400)
     
+    # Проверяем существование локации
+    if not Location.objects.filter(id=location_id).exists():
+        return JsonResponse({"error": "Location not found"}, status=404)
     available_rooms = Room.objects.filter(location_id=location_id)
 
-    available_rooms = available_rooms.exclude(
-        booking__date=date,
-        booking__time_slots__in=[time_slot],
-    )
+    available_rooms = Room.objects.filter(
+            location_id=location_id
+        ).exclude(
+            Q(booking__date=date) & 
+            Q(booking__time_slots__in=time_slots)
+        ).distinct().select_related('location')
     room_list = [
-        {"name": room.name, "location": room.location.name, "capacity": room.capacity}
-        for room in available_rooms
-    ]
+            {
+                "id": room.id,
+                "name": room.name,
+                "location": room.location.name,
+                "capacity": room.capacity
+            }
+            for room in available_rooms
+        ]
+    
 
-    return JsonResponse({"available_rooms": room_list})
+    return JsonResponse({
+            "date": date_str,
+            "location_id": location_id,
+            "available_rooms": room_list
+        })
