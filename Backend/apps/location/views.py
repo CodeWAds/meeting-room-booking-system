@@ -2,8 +2,10 @@ from django.shortcuts import render, get_object_or_404
 import json
 from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot
-import datetime
+from datetime import datetime, timedelta
 from apps.equipment.models import Equipment
+from django.db.models import Count, Q
+
 
 
 
@@ -206,3 +208,5 @@ def get_available_rooms(request):
     ]
 
     return JsonResponse({"available_rooms": room_list})
+
+

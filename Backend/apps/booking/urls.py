@@ -9,4 +9,7 @@ urlpatterns = [
     path('<int:booking_id>/update/', views.update_booking, name='update_booking'),
     path('<int:booking_id>/delete/', views.delete_booking, name='delete_booking'),
     path('user/<int:user_id>/', views.get_user_bookings, name='get_user_bookings'),
+
+    path('<int:location_id>/rooms/<int:room_id>/time_slot_stats/', views.room_time_slot_stats, name='room_hourly_usage_stats'),
 ]
+
