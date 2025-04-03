@@ -12,6 +12,10 @@ const Navbar: React.FC<NavbarProps> = (props) => {
   const burgerRef = useRef<HTMLDivElement>(null);
   const store = useStore();
 
+  useEffect(() => {
+    store.setUserKarma(null);
+  }, [store.user]);
+
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -59,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = (props) => {
       >
         <div className={styles.menuHeader}>
             <span>{store.user ? store.user.first_name : "Загрузка..."}</span>
-            <span>(карма)</span>
+            <span>({store.karma ? store.karma : "Загрузка..."})</span>
           </div>
         <a href="/" onClick={handleLinkClick}>Главная</a>
         <a href="favourites" onClick={handleLinkClick}>Избранное</a>

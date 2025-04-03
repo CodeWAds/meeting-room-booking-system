@@ -2,13 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from '../styles/Rooms.module.css';
-
-interface Room {
-  name: string;
-  capacity: string;
-  location: string;
-  icons: string[];
-}
+import { getData } from '../api/api-utils';
+import { Room } from '../types/interfaces';
 
 interface RoomsProps {
   onBookClick: () => void;
