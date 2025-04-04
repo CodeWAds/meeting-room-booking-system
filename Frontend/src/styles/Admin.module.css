@@ -1,0 +1,248 @@
+.adminLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: rgb(17, 24, 40);
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: rgb(37, 99, 234);
+  color: #ffffff;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.headerTitle {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.logoutButton {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.logoutButton:hover {
+  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(32, 41, 56);
+  color: #ffffff;
+  padding: 10px 0;
+  width: 80%;
+  margin: 70px auto 0;
+  border-radius: 30px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 2.5rem;
+  margin-right: 2rem;
+  text-decoration: none;
+  color: #ffffff;
+  background-color: transparent;
+  border-radius: 15px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #b6bcc4;
+}
+
+.navLinkActive {
+  background-color: rgb(48, 59, 75);
+  color: rgb(37, 99, 234);
+  font-weight: 600;
+}
+
+.navIcon {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  margin: 35px auto;
+  width: 80%;
+  height: 500px; /* Фиксированная высота вместо min-height */
+  background-color: rgb(32, 41, 56);
+  border-radius: 30px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.searchInput {
+  padding: 8px 12px;
+  background-color: rgb(40, 50, 70);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  width: 200px;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.addButton {
+  padding: 8px 16px;
+  background-color: rgb(37, 99, 234);
+  color: #ffffff;
+  border: none;
+  border-radius: 15px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.addButton:hover {
+  background-color: rgb(31, 85, 201);
+}
+
+.tableWrapper {
+  flex-grow: 1;
+  overflow-y: auto; 
+  padding-right: 15px;
+  
+}
+
+
+.tableWrapper::-webkit-scrollbar {
+  width: 10px; 
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: rgb(32, 41, 56);
+  border-radius: 5px;
+  margin-left: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: rgb(50, 60, 80); 
+  border-radius: 5px;
+  border: 2px solid rgb(32, 41, 56); 
+}
+
+.tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: rgb(68, 82, 109); 
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  color: #ffffff;
+  background-color: rgb(32, 41, 56);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dataTable th {
+  background-color: rgb(50, 60, 80);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dataTable td {
+  font-size: 0.95rem;
+}
+
+.dataTable tr:last-child td {
+  border-bottom: none;
+}
+
+.dataTable tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.actionsCell {
+  display: flex;
+  gap: 10px;
+}
+
+.editBtn,
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editBtn img,
+.deleteBtn img {
+  width: 16px;
+  height: 16px;
+}
+
+.editBtn:hover img {
+  filter: brightness(1.2);
+}
+
+.deleteBtn:hover img {
+  filter: brightness(1.2);
+}
