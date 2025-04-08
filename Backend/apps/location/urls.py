@@ -23,5 +23,27 @@ urlpatterns = [
     path("<int:location_id>/time_slot/<int:slot_id>/", views.time_slot_detail, name="time_slot_detail"), 
     path('<int:location_id>/time_slot/<int:slot_id>/update/', views.update_time_slot, name='update_time_slot'),
     path('<int:location_id>/time_slot/<int:slot_id>/delete/', views.delete_time_slot, name='delete_time_slot'),
-    
+
+    #RoomAvailability
+    path("<int:location_id>/rooms/<int:room_id>/availability/", views.availability_room, name="get_availability"),  
+    path("<int:location_id>/rooms/<int:room_id>/availability/create_availability/", views.create_availability_room, name="create_availability"),
+    path("<int:location_id>/rooms/<int:room_id>/availability/<int:availability_id>/", views.availability_detail_room, name="availability_detail"), 
+    path('<int:location_id>/rooms/<int:room_id>/availability/<int:availability_id>/update/', views.update_availability_room, name='update_availability'),
+    path('<int:location_id>/rooms/<int:room_id>/availability/<int:availability_id>/delete/', views.delete_availability_room, name='delete_availability'),
+
+
+    #LocAvailability
+    path("<int:location_id>/availability/", views.availability_loc, name="get_availability_loc"),  
+    path("<int:location_id>/availability/create_availability/", views.create_availability_loc, name="create_availability_loc"),
+    path("<int:location_id>/availability/<int:availability_id>/", views.availability_detail_loc, name="availability_detail_loc"), 
+    path('<int:location_id>/availability/<int:availability_id>/update/', views.update_availability_loc, name='update_availability_loc'),
+    path('<int:location_id>/availability/<int:availability_id>/delete/', views.delete_availability_loc, name='delete_availability_loc'),
+
+    #Reason
+    path("reason/", views.availability_reason, name="availability_reason"),  
+    path("reason/create_availability/", views.create_availability_reason, name="create_availability_reason"), 
+    path('reason/update/', views.update_availability_reason, name='update_availability_reason'),
+    path('reason/delete/', views.delete_availability_reason, name='delete_availability_reason'),
+
+
 ]

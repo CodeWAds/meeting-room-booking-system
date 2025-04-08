@@ -40,3 +40,36 @@ class SpecialTimeSlot(models.Model):
 
     def __str__(self):
         return f"Special slot on {self.date} ({self.id_time_slot})"
+    
+
+
+class AvailabilityReason(models.Model):
+    """Модель для причин недоступности"""
+    id_reason = models.AutoField(primary_key= True)
+    name = models.CharField(max_length=255)
+    def __str__(self):
+        return self.name
+
+
+class LocationAvailability(models.Model):
+    """Модель доступности локаций"""
+    id_status_loc = models.AutoField(primary_key=True)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE)
+    begin_datetime = models.DateTimeField()
+    end_datetime = models.DateTimeField()
+    reason = models.ForeignKey(AvailabilityReason, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.location} недоступна с {self.begin_datetime} по {self.end_datetime}"
+
+
+class RoomAvailability(models.Model):
+    """Модель доступности комнат"""
+    id_status_room = models.AutoField(primary_key=True)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    begin_datetime = models.DateTimeField()
+    end_datetime = models.DateTimeField()
+    reason = models.ForeignKey(AvailabilityReason, on_delete=models.SET_NULL, null=True, blank=True)
+    def __str__(self):
+        return f"{self.room} недоступна с {self.begin_datetime} по {self.end_datetime}"
+
