@@ -1,45 +1,72 @@
-import React, { useState, useEffect } from 'react'; // Добавлен useEffect
+import React, { useState, useEffect } from 'react';
 import styles from '../styles/Filters.module.css';
 import { Calendar } from 'primereact/calendar';
 import '../CalendarLocale';
+import { getData } from '../api/api-utils';
+import { endpoints } from '../api/config';
+
+import { Chart } from 'primereact/chart';
+        
 
 const Filters: React.FC = () => {
-  const timeSlots = [
-    '9:00 - 9:30',
-    '9:40 - 10:10',
-    '10:20 - 10:50',
-    // ... остальные слоты
-  ];
-
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [locations, setLocations] = useState<string[]>([]);
+
+  const [locations, setLocations] = useState<{ id: number; name: string }[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const fetchLocations = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('https://sivann.ru/location/');
-      if (!response.ok) {
-        throw new Error(`Ошибка HTTP: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Данные с сервера:', data); // Для отладки
-      // Предполагаем, что data — это массив объектов с полем name
-      const locationNames = data.map((loc: { name: string }) => loc.name);
-      setLocations(locationNames);
-    } catch (error) {
-      console.error('Ошибка при загрузке локаций:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Выполняем запрос при монтировании компонента
   useEffect(() => {
-    fetchLocations();
+    setIsLoading(true);
+    getData(endpoints.locations)
+      .then((data) => {
+        if (data.locations) {
+          const locationData = data.locations.map((element) => ({
+            id: element.id_location,
+            name: element.name,
+          }));
+          setLocations(locationData);
+          if (locationData.length > 0) {
+            setSelectedLocation(String(locationData[0].id));
+          }
+        } else {
+          console.error('Данные не в ожидаемом формате:', data);
+          setLocations([]);
+        }
+      })
+      .catch((e) => {
+        console.error('Ошибка при загрузке локаций:', e);
+        setLocations([]);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (selectedLocation) {
+      setIsLoading(true);
+      getData(endpoints.time_slots(selectedLocation))
+        .then((data) => {
+          if (data.time_slots) {
+            const slotTimes = data.time_slots.map((slot) => {
+              const begin = slot.time_begin.slice(0, 5);
+              const end = slot.time_end.slice(0, 5);
+              return `${begin} - ${end}`;
+            });
+            setAvailableTimeSlots(slotTimes);
+          } else {
+            console.error('Временные слоты не в ожидаемом формате:', data);
+            setAvailableTimeSlots([]);
+          }
+        })
+        .catch((e) => {
+          console.error('Ошибка при загрузке слотов:', e);
+          setAvailableTimeSlots([]);
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [selectedLocation]);
 
   const formatDate = (date: string) => {
     if (!date) return 'ДД.ММ.ГГГГ';
@@ -62,12 +89,13 @@ const Filters: React.FC = () => {
 
   const isConsecutive = (slots: string[]) => {
     if (slots.length < 2) return true;
-    const indices = slots.map((slot) => timeSlots.indexOf(slot)).sort((a, b) => a - b);
+    const indices = slots.map((slot) => availableTimeSlots.indexOf(slot)).sort((a, b) => a - b);
     return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
   };
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedLocation(e.target.value);
+    setSelectedSlots([]);
   };
 
   const handleSlotToggle = (slot: string) => {
@@ -82,6 +110,63 @@ const Filters: React.FC = () => {
     } else {
       setSelectedSlots([]);
     }
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Количество',
+        },
+        ticks: {
+          stepSize: 1,
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Месяцы',
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+      },
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuad',
+    },
+    barThickness: 30,
+  };
+  const chartData = {
+    labels: ['Январь', 'Февраль', 'Март', 'Апрель'],
+    datasets: [
+      {
+        label: 'Продажи',
+        data: [1, 3, 4, 5],
+        backgroundColor: '#42A5F5',
+        borderColor: '#1E88E5',
+        borderWidth: 1,
+      },
+    ],
   };
 
   const calendarValue = selectedDate ? new Date(selectedDate) : null;
@@ -108,13 +193,12 @@ const Filters: React.FC = () => {
               onChange={handleLocationChange}
               disabled={isLoading}
             >
-              <option value="">Выберите локацию</option>
               {isLoading ? (
                 <option>Загрузка...</option>
               ) : locations.length > 0 ? (
-                locations.map((location, index) => (
-                  <option key={index} value={location}>
-                    {location}
+                locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
                   </option>
                 ))
               ) : (
@@ -136,17 +220,21 @@ const Filters: React.FC = () => {
             </div>
           </div>
           <div className={styles.timeSlots}>
-            {timeSlots.map((slot, index) => (
-              <button
-                key={index}
-                className={`${styles.slotButton} ${
-                  selectedSlots.includes(slot) ? styles.active : ''
-                }`}
-                onClick={() => handleSlotToggle(slot)}
-              >
-                {slot}
-              </button>
-            ))}
+            {isLoading ? (
+              <p>Загрузка слотов...</p>
+            ) : availableTimeSlots.length > 0 ? (
+              availableTimeSlots.map((slot, index) => (
+                <button
+                  key={index}
+                  className={`${styles.slotButton} ${selectedSlots.includes(slot) ? styles.active : ''}`}
+                  onClick={() => handleSlotToggle(slot)}
+                >
+                  {slot}
+                </button>
+              ))
+            ) : (
+              <p>Слоты не найдены</p>
+            )}
           </div>
         </div>
       </div>

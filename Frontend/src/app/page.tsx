@@ -8,18 +8,9 @@ import Modal from "../components/Modal";
 import styles from "../styles/Home.module.css";
 import { useStore } from "../store/app-store";
 
-interface UserData {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  is_premium?: boolean;
-}
 
 const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [userData, setUserData] = useState(null);
   const store = useStore();
 
   useEffect(() => {
@@ -32,11 +23,11 @@ const Home: React.FC = () => {
             store.setUserData(data);
           } else {
             console.warn("Данные пользователя недоступны. Запустите приложение в Telegram Mini App.");
-            setUserData(null);
+            store.setUserData(null);
           }
         } catch (error) {
           console.error("Ошибка инициализации Telegram:", error);
-          setUserData(null);
+          store.setUserData(null);
         }
       }
     };
