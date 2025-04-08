@@ -173,7 +173,6 @@ const Filters: React.FC = () => {
 
   return (
     <div className={styles.filters}>
-      {/* <Chart type="bar" data={chartData} options={chartOptions} /> */}
       <div className={styles.filterRow}>
         <div className={styles.filterItem}>
           <label>Выберите дату и локацию</label>

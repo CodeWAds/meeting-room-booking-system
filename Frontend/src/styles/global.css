@@ -11,7 +11,6 @@ body {
   background: #111828;
   color: #C9C9C9;
   padding: 20px;
-  overflow: hidden;
 }
 
 
@@ -39,7 +38,6 @@ body {
   background: rgb(32, 41, 56);
   color: #c9c9c9;
   font-size: 14px;
-  max-width: 200px;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -67,4 +65,5 @@ body {
 .p-datepicker-calendar tbody tr td {
   padding: 10px;
 }
+
 

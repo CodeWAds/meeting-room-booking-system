@@ -86,7 +86,6 @@
 
 .actions button {
   font-size: 18px;
-  width: 150px;
   cursor: pointer;
   padding: 15px;
   border: none;
@@ -113,6 +112,7 @@
   padding: 5px 10px;
   border-radius: 50px;
   border: none;
+  color: white;
   background-color: #324154;
   height: 40px;
 }
@@ -125,6 +125,10 @@
   color: #fff;
   font-size: 16px;
   cursor: pointer;
+}
+
+.check_button:hover {
+  background-color: #2d8704;
 }
 
 .left_menu {
@@ -155,6 +159,9 @@
   cursor: pointer;
 }
 
+.left_menu button:hover, .right_menu button:hover {
+background-color: #194bb8;
+}
 .header_left_menu {
   display: flex;
   justify-content: space-between;
@@ -188,5 +195,9 @@
   background-color: #324154;
   color: #fff;
   font-size: 16px;
-  width:50%;
+  width: 70%;
+}
+
+.listBooking {
+  margin-top: 20px;
 }

@@ -1,4 +1,3 @@
-// app/admin/layout.tsx
 "use client";
 
 import React from 'react';
@@ -14,7 +13,6 @@ export default function AdminLayout({
     <div className={styles.adminLayout}>
       {}
       <AdminHeaderNav />
-
       {}
       <main className={styles.content}>
         {children}

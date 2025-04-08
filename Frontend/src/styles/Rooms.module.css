@@ -56,6 +56,33 @@
     right: 20px;
     cursor: pointer;
   }
+
+  .roomsListManager {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .headCard {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .headCard button {
+    background: none;
+    padding: 5px;
+  }
+
+  .headCard button:hover {
+    background: none;
+    filter: brightness(1.2);
+  }
+  
+  .headIcon {
+    width: 16px;
+    height: 16px;
+  }
   
   @media (max-width: 768px) {
     .roomList {
