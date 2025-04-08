@@ -1,17 +1,17 @@
 .filters {
   margin: 20px 0;
   width: 100%;
-  
+
 }
 
 .filterRow {
   margin-bottom: 20px;
-  
+
 }
 
 .filterItem label {
   display: block;
-  
+
   font-size: 14px;
   line-height: 16px;
   color: rgb(201, 201, 201);
@@ -35,7 +35,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('../../public/svg/arrow-down.svg'); /* Или ваш путь */
+  background-image: url('../../public/svg/arrow-down.svg');
   background-repeat: no-repeat;
   background-position: right 20px center;
   background-size: 18px;
@@ -53,7 +53,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 0; 
+  opacity: 0;
   cursor: pointer;
   z-index: 2;
 }
@@ -65,36 +65,11 @@
   background: rgb(32, 41, 56);
   color: rgb(201, 201, 201);
   font-size: 14px;
-  pointer-events: none; /* Отключаем взаимодействие с текстом */
-}
-
-
-.dateInputWrapper::after {
-  content: url('../../public/svg/calendar.svg'); /* Используем эмодзи календаря */
-  position: absolute;
-  top: 55%;
-  right: 20px;
-  transform: translateY(-50%);
-  color: rgb(201, 201, 201);
-  font-size: 18px;
   pointer-events: none;
-  z-index: 1;
 }
 
 .dateInputWrapper {
   position: relative;
-}
-
-/* Увеличиваем область клика для иконки */
-.dateInputWrapper::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  width: 36px; /* Увеличиваем область клика (16px иконка + 10px с каждой стороны) */
-  height: 36px; /* Увеличиваем область клика */
-  z-index: 1; /* Под input, но над иконкой */
 }
 
 .timeSlots {
@@ -192,7 +167,7 @@
     flex: 0 1 calc(33.33% - 10px);
     box-sizing: border-box;
     text-align: center;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .tooltip {

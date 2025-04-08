@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../styles/fav.module.css';
-import Modal from './ModalFollow'; // Импортируем модальное окно
+import Modal from './ModalFollow';
+import Navbar from '../../components/Navbar';
 
 interface Room {
   name: string;
@@ -11,11 +12,7 @@ interface Room {
   icons: string[];
 }
 
-interface FavouritesProps {
-  onBookClick: () => void;
-}
-
-const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
+const Favourites = () => {
   const [favourites, setFavourites] = useState<Room[]>(() => {
     if (typeof window !== 'undefined') {
       const savedFavourites = localStorage.getItem('favourites');
@@ -38,10 +35,8 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
       }
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
-    }
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const toggleFavourite = (room: Room) => {
@@ -53,53 +48,20 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
     }
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false); // Состояние для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleBookClick = () => {
-    setIsModalOpen(true); // Открываем модальное окно
-    onBookClick(); // Вызываем переданную функцию onBookClick
+    setIsModalOpen(true);
+    console.log("Book button clicked");
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false); // Закрываем модальное окно
+    setIsModalOpen(false);
   };
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const burgerRef = useRef<HTMLDivElement>(null);
-
-  const handleMenuToggle = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      menuRef.current &&
-      !menuRef.current.contains(event.target as Node) &&
-      burgerRef.current &&
-      !burgerRef.current.contains(event.target as Node)
-    ) {
-      setIsMenuOpen(false);
-    }
-  };
-
-  const handleLinkClick = () => {
-    setIsMenuOpen(false);
-  };
-
-  useEffect(() => {
-    if (isMenuOpen) {
-      document.addEventListener('click', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [isMenuOpen]);
 
   return (
     <div className={styles.rooms}>
-      <h3>Избранные переговорные</h3>
+      <Navbar title="Избранные переговорные" />
       {favourites.length === 0 ? (
         <p style={{ color: '#fff' }}>У вас пока нет избранных комнат.</p>
       ) : (
@@ -124,23 +86,6 @@ const Favourites: React.FC<FavouritesProps> = ({ onBookClick }) => {
           ))}
         </div>
       )}
-      <div
-        className={styles.navbarBurger}
-        onClick={handleMenuToggle}
-        ref={burgerRef}
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <div
-        className={`${styles.navbarMenu} ${isMenuOpen ? styles.active : ''}`}
-        ref={menuRef}
-      >
-        <a href="/" onClick={handleLinkClick}>Главное</a>
-        <a href="/favourites" onClick={handleLinkClick}>Избранное</a>
-        <a href="/myBooking" onClick={handleLinkClick}>Мои бронирования</a>
-      </div>
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
     </div>
   );

@@ -1,0 +1,146 @@
+.header {
+  background-color: rgb(37, 99, 234);
+  padding: 1rem 2rem;
+  font-size: 2rem;
+  color: rgb(255, 255, 255);
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.mainContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  height: 100vh;
+  /* Полная высота */
+  padding-top: 4.2rem;
+  /* Учитываем высоту header (1rem × 2 + 1.2rem текста ≈ 3.2rem + запас) */
+  box-sizing: border-box;
+}
+
+.loginForm {
+  background-color: rgb(32, 41, 56);
+  padding: 2.5rem 3rem;
+  border-radius: 30px;
+  width: 100%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+}
+
+.label {
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-left: 0.5rem;
+}
+
+.input {
+  background-color: rgb(50, 65, 84);
+  border: none;
+  color: #e0e0e0;
+  padding: 0.9rem 1.2rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: rgb(201, 201, 201);
+}
+
+.input:focus {
+  border-color: #4a69e2;
+  box-shadow: 0 0 0 3px rgba(74, 105, 226, 0.2);
+}
+
+.input:disabled {
+  background-color: #2f2f41;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  background-color: rgb(37, 99, 234);
+  color: rgb(255, 255, 255);
+  border: none;
+  padding: 0.9rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  margin-top: 1rem;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #3a58c2;
+}
+
+.submitButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.submitButton:disabled {
+  background-color: #5a5a70;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+/* --- Адаптивность --- */
+@media (max-width: 768px) {
+  .loginForm {
+    padding: 2rem 1.5rem;
+    max-width: 90%;
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .input,
+  .submitButton {
+    font-size: 1rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .header {
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
+  }
+}

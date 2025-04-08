@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../styles/ModalFollow.module.css';
+import { Calendar } from 'primereact/calendar';
+import '../../CalendarLocale';
 
 interface ModalProps {
   isOpen: boolean;
@@ -30,61 +32,55 @@ const timeSlots = [
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>('2025-02-28');
+  const [selectedDate, setSelectedDate] = useState<string>();
 
-  // Функция для преобразования времени в минуты для сравнения
-  const timeToMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  // Проверка, являются ли два слота смежными
-  const areSlotsAdjacent = (slot1: string, slot2: string): boolean => {
-    const [, endTime1] = slot1.split(' - ');
-    const [startTime2] = slot2.split(' - ');
-    const endMinutes1 = timeToMinutes(endTime1);
-    const startMinutes2 = timeToMinutes(startTime2);
-
-    // Проверяем, совпадает ли время окончания первого слота с началом второго
-    // Учитываем возможный небольшой разрыв (например, 9:30 и 9:40)
-    const diff = Math.abs(startMinutes2 - endMinutes1);
-    return diff <= 10; // Разрыв до 10 минут считается допустимым
-  };
-
-  // Проверка, является ли новый слот смежным с уже выбранными
-  const isSlotAdjacentToSelected = (newSlot: string): boolean => {
-    if (selectedSlots.length === 0) return true; // Если ничего не выбрано, любой слот можно выбрать
-
-    return selectedSlots.some((selectedSlot) => {
-      return areSlotsAdjacent(selectedSlot, newSlot) || areSlotsAdjacent(newSlot, selectedSlot);
-    });
+  // Проверяет, идут ли выбранные слоты подряд
+  const isConsecutive = (slots: string[]) => {
+    if (slots.length < 2) return true;
+    const indices = slots.map(slot => timeSlots.indexOf(slot)).sort((a, b) => a - b);
+    return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
   };
 
   const handleSlotToggle = (slot: string) => {
+    let newSelectedSlots = [...selectedSlots];
+
     if (selectedSlots.includes(slot)) {
-      // Если слот уже выбран, снимаем его
-      setSelectedSlots(selectedSlots.filter((s) => s !== slot));
+      newSelectedSlots = newSelectedSlots.filter(s => s !== slot);
     } else {
-      // Проверяем, является ли новый слот смежным с уже выбранными
-      if (isSlotAdjacentToSelected(slot)) {
-        setSelectedSlots([...selectedSlots, slot]);
-      } else {
-        // Если слот не смежный, сбрасываем выбор и начинаем заново
-        setSelectedSlots([slot]);
-      }
+      newSelectedSlots.push(slot);
+    }
+
+    if (isConsecutive(newSelectedSlots)) {
+      setSelectedSlots(newSelectedSlots);
+    } else {
+      setSelectedSlots([]); // Если слоты не подряд, сбрасываем
     }
   };
 
   const formatDate = (date: string) => {
     if (!date) return 'ДД.ММ.ГГГГ';
     const [year, month, day] = date.split('-');
-    return `${day}.${month}.${year}`; // Исправляем синтаксис
+    return `${day}.${month}.${year}`;
   };
+
+  const handleCalendarChange = (e: { value: Date | null }) => {
+    if (e.value) {
+      const date = e.value;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      setSelectedDate(dateString);
+    } else {
+      setSelectedDate('');
+    }
+  };
+
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(event.target.value);
   };
-
+  const calendarValue = selectedDate ? new Date(selectedDate) : null;
   if (!isOpen) return null;
 
   return (
@@ -99,13 +95,15 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
               <label>Выберите дату и локацию</label>
               <div className={styles.filterInput}>
                 <div className={styles.dateInputWrapper}>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    className={styles.dateInput}
+                  <Calendar
+                    value={calendarValue}
+                    onChange={handleCalendarChange}
+                    dateFormat="dd.mm.yy"
+                    placeholder="ДД.ММ.ГГГГ"
+                    locale='ru'
+                    className="customCalendar"
+                    panelClassName="customPanel"
                   />
-                  <span className={styles.dateDisplay}>{formatDate(selectedDate)}</span>
                 </div>
               </div>
             </div>

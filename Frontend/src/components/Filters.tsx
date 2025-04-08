@@ -1,74 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../styles/Filters.module.css';
+import { Calendar } from 'primereact/calendar';
+import '../CalendarLocale';
+import { getData } from '../api/api-utils';
+import { endpoints } from '../api/config';
+
+import { Chart } from 'primereact/chart';
+        
 
 const Filters: React.FC = () => {
-  const timeSlots = [
-    '9:00 - 9:30',
-    '9:40 - 10:10',
-    '10:20 - 10:50',
-    '11:00 - 11:30',
-    '11:40 - 12:10',
-    '12:20 - 12:50',
-    '13:00 - 13:30',
-    '13:40 - 14:10',
-    '14:20 - 14:50',
-    '15:00 - 15:30',
-    '15:40 - 16:10',
-    '16:20 - 16:50',
-    '17:00 - 17:30',
-    '17:40 - 18:10',
-    '18:20 - 18:50',
-    '19:00 - 19:30',
-    '19:40 - 20:10',
-    '20:20 - 20:50',
-    '21:00 - 21:30',
-  ];
-
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>('2025-02-28');
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
-  // Функция для преобразования времени в минуты для сравнения
-  const timeToMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
+  const [locations, setLocations] = useState<{ id: number; name: string }[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Проверка, являются ли два слота смежными
-  const areSlotsAdjacent = (slot1: string, slot2: string): boolean => {
-    const [, endTime1] = slot1.split(' - ');
-    const [startTime2] = slot2.split(' - ');
-    const endMinutes1 = timeToMinutes(endTime1);
-    const startMinutes2 = timeToMinutes(startTime2);
 
-    // Проверяем, совпадает ли время окончания первого слота с началом второго
-    // Учитываем возможный небольшой разрыв (например, 9:30 и 9:40)
-    const diff = Math.abs(startMinutes2 - endMinutes1);
-    return diff <= 10; // Разрыв до 10 минут считается допустимым
-  };
+  useEffect(() => {
+    setIsLoading(true);
+    getData(endpoints.locations)
+      .then((data) => {
+        if (data.locations) {
+          const locationData = data.locations.map((element) => ({
+            id: element.id_location,
+            name: element.name,
+          }));
+          setLocations(locationData);
+          if (locationData.length > 0) {
+            setSelectedLocation(String(locationData[0].id));
+          }
+        } else {
+          console.error('Данные не в ожидаемом формате:', data);
+          setLocations([]);
+        }
+      })
+      .catch((e) => {
+        console.error('Ошибка при загрузке локаций:', e);
+        setLocations([]);
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  // Проверка, является ли новый слот смежным с уже выбранными
-  const isSlotAdjacentToSelected = (newSlot: string): boolean => {
-    if (selectedSlots.length === 0) return true; // Если ничего не выбрано, любой слот можно выбрать
-
-    return selectedSlots.some((selectedSlot) => {
-      return areSlotsAdjacent(selectedSlot, newSlot) || areSlotsAdjacent(newSlot, selectedSlot);
-    });
-  };
-
-  const handleSlotToggle = (slot: string) => {
-    if (selectedSlots.includes(slot)) {
-      // Если слот уже выбран, снимаем его
-      setSelectedSlots(selectedSlots.filter((s) => s !== slot));
-    } else {
-      // Проверяем, является ли новый слот смежным с уже выбранными
-      if (isSlotAdjacentToSelected(slot)) {
-        setSelectedSlots([...selectedSlots, slot]);
-      } else {
-        // Если слот не смежный, сбрасываем выбор и начинаем заново
-        setSelectedSlots([slot]);
-      }
+  useEffect(() => {
+    if (selectedLocation) {
+      setIsLoading(true);
+      getData(endpoints.time_slots(selectedLocation))
+        .then((data) => {
+          if (data.time_slots) {
+            const slotTimes = data.time_slots.map((slot) => {
+              const begin = slot.time_begin.slice(0, 5);
+              const end = slot.time_end.slice(0, 5);
+              return `${begin} - ${end}`;
+            });
+            setAvailableTimeSlots(slotTimes);
+          } else {
+            console.error('Временные слоты не в ожидаемом формате:', data);
+            setAvailableTimeSlots([]);
+          }
+        })
+        .catch((e) => {
+          console.error('Ошибка при загрузке слотов:', e);
+          setAvailableTimeSlots([]);
+        })
+        .finally(() => setIsLoading(false));
     }
-  };
+  }, [selectedLocation]);
 
   const formatDate = (date: string) => {
     if (!date) return 'ДД.ММ.ГГГГ';
@@ -76,9 +74,102 @@ const Filters: React.FC = () => {
     return `${day}.${month}.${year}`;
   };
 
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(event.target.value);
+  const handleCalendarChange = (e: { value: Date | null }) => {
+    if (e.value) {
+      const date = e.value;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      setSelectedDate(dateString);
+    } else {
+      setSelectedDate('');
+    }
   };
+
+  const isConsecutive = (slots: string[]) => {
+    if (slots.length < 2) return true;
+    const indices = slots.map((slot) => availableTimeSlots.indexOf(slot)).sort((a, b) => a - b);
+    return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
+  };
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedLocation(e.target.value);
+    setSelectedSlots([]);
+  };
+
+  const handleSlotToggle = (slot: string) => {
+    let newSelectedSlots = [...selectedSlots];
+    if (selectedSlots.includes(slot)) {
+      newSelectedSlots = newSelectedSlots.filter((s) => s !== slot);
+    } else {
+      newSelectedSlots.push(slot);
+    }
+    if (isConsecutive(newSelectedSlots)) {
+      setSelectedSlots(newSelectedSlots);
+    } else {
+      setSelectedSlots([]);
+    }
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Количество',
+        },
+        ticks: {
+          stepSize: 1,
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Месяцы',
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+      },
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuad',
+    },
+    barThickness: 30,
+  };
+  const chartData = {
+    labels: ['Январь', 'Февраль', 'Март', 'Апрель'],
+    datasets: [
+      {
+        label: 'Продажи',
+        data: [1, 3, 4, 5],
+        backgroundColor: '#42A5F5',
+        borderColor: '#1E88E5',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const calendarValue = selectedDate ? new Date(selectedDate) : null;
 
   return (
     <div className={styles.filters}>
@@ -87,17 +178,32 @@ const Filters: React.FC = () => {
           <label>Выберите дату и локацию</label>
           <div className={styles.filterInput}>
             <div className={styles.dateInputWrapper}>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                className={styles.dateInput}
+              <Calendar
+                value={calendarValue}
+                onChange={handleCalendarChange}
+                dateFormat="dd.mm.yy"
+                placeholder="ДД.ММ.ГГГГ"
+                locale="ru"
+                className="customCalendar"
+                panelClassName="customPanel"
               />
-              <span className={styles.dateDisplay}>{formatDate(selectedDate)}</span>
             </div>
-            <select>
-              <option>Локация</option>
-              <option>1 корпус, 2 этаж</option>
+            <select
+              value={selectedLocation}
+              onChange={handleLocationChange}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <option>Загрузка...</option>
+              ) : locations.length > 0 ? (
+                locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))
+              ) : (
+                <option>Локации не найдены</option>
+              )}
             </select>
           </div>
         </div>
@@ -114,15 +220,21 @@ const Filters: React.FC = () => {
             </div>
           </div>
           <div className={styles.timeSlots}>
-            {timeSlots.map((slot, index) => (
-              <button
-                key={index}
-                className={`${selectedSlots.includes(slot) ? styles.active : ''}`}
-                onClick={() => handleSlotToggle(slot)}
-              >
-                {slot}
-              </button>
-            ))}
+            {isLoading ? (
+              <p>Загрузка слотов...</p>
+            ) : availableTimeSlots.length > 0 ? (
+              availableTimeSlots.map((slot, index) => (
+                <button
+                  key={index}
+                  className={`${styles.slotButton} ${selectedSlots.includes(slot) ? styles.active : ''}`}
+                  onClick={() => handleSlotToggle(slot)}
+                >
+                  {slot}
+                </button>
+              ))
+            ) : (
+              <p>Слоты не найдены</p>
+            )}
           </div>
         </div>
       </div>
