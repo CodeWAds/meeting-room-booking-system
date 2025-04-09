@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from 'react';
-import AdminHeaderNav from '../../../components/Admin';
 import styles from '../../../styles/Admin.module.css';
 
 export default function BookingsPage() {
@@ -21,8 +20,6 @@ export default function BookingsPage() {
     bookings.room.toLowerCase().includes(searchTerm.toLowerCase())
   );
   return (
-    <div className={styles.adminLayout}>
-      <AdminHeaderNav />
       <main className={styles.content}>
         <div className={styles.contentHeader}>
           <h2 className={styles.pageTitle}>Брони</h2>
@@ -65,6 +62,5 @@ export default function BookingsPage() {
           </table>
         </div>
       </main>
-    </div>
   );
 }
