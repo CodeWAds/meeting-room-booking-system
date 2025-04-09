@@ -37,7 +37,7 @@ SECRET_KEY = 'django-insecure-j5$@=0(@$za*u=-*ne#8s!4f)i+(00&3+75%1v!tv+)^!m999$
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['sivann.ru','bmr.sivann.ru','pma.sivann.ru']
+ALLOWED_HOSTS = ['sivann.ru','bmr.sivann.ru','pma.sivann.ru', "127.0.0.1"]
 
 
 # Application definition

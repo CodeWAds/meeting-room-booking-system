@@ -24,7 +24,7 @@ def equipment_detail(request, equipment_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     equipment = get_object_or_404(Equipment, id_equipment=equipment_id)
-    return JsonResponse({"equipment_id": equipment.equipment_id, "name": equipment.name, "address": equipment.description})
+    return JsonResponse({"equipment_id": equipment.id_equipment, "name": equipment.name, "address": equipment.description})
 
 
 # Update
