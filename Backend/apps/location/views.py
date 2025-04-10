@@ -228,11 +228,11 @@ def get_available_rooms(request):
         return JsonResponse({"message": "Invalid metod"})
     try:
             data = json.loads(request.body)
-            location_id = data.get('location')
+            id_location = data.get('location')
             date_str = data.get('date')
             time_slot_ids = data.get('time_slot', [])
             
-            if not all([location_id, date_str, time_slot_ids]):
+            if not all([id_location, date_str, time_slot_ids]):
                 return JsonResponse({"error": "Missing required parameters"}, status=400)
                 
     except (json.JSONDecodeError, KeyError) as e:
@@ -255,21 +255,22 @@ def get_available_rooms(request):
         return JsonResponse({"error": "No valid time slots found"}, status=400)
     
     # Проверяем существование локации
-    if not Location.objects.filter(id=location_id).exists():
+    if not Location.objects.filter(id_location=id_location).exists():
         return JsonResponse({"error": "Location not found"}, status=404)
-    available_rooms = Room.objects.filter(location_id=location_id)
+    available_rooms = Room.objects.filter(id_location=id_location)
 
     available_rooms = Room.objects.filter(
-            location_id=location_id
+            id_location=id_location
         ).exclude(
             Q(booking__date=date) & 
             Q(booking__time_slots__in=time_slots)
         ).distinct().select_related('location')
+    location = Location.objects.filter(id_location= id_location)
     room_list = [
             {
-                "id": room.id,
-                "name": room.name,
-                "location": room.location.name,
+                "id": room.id_room,
+                "name": room.room_name,
+                "location": location.name,
                 "capacity": room.capacity
             }
             for room in available_rooms
@@ -278,7 +279,7 @@ def get_available_rooms(request):
 
     return JsonResponse({
             "date": date_str,
-            "location_id": location_id,
+            "location_id": id_location,
             "available_rooms": room_list
         })
 
@@ -296,11 +297,11 @@ def availability_room(request, location_id, room_id):
         data = [
             {
                 'id': av.id_status_room,
-                'room_id': av.room_id,
+                'room_id': av.room,
                 'begin_datetime': av.begin_datetime,
                 'end_datetime': av.end_datetime,
                 'reason': {
-                    'id': av.reason.id,
+                    'id': av.reason.id_reason,
                     'name': av.reason.name
                 } if av.reason else None
             }
@@ -316,7 +317,7 @@ def create_availability_room(request, location_id, room_id):
     Создать новый период недоступности
     POST /locations/<location_id>/rooms/<room_id>/availability/create_availability/
     """
-    room = get_object_or_404(Room, id=room_id, location_id=location_id)
+    room = get_object_or_404(Room, id=room_id, id_location=location_id)
 
     required_fields = ['begin_datetime', 'end_datetime']
     for field in required_fields:
@@ -335,19 +336,24 @@ def create_availability_room(request, location_id, room_id):
             )
         
         # Создание записи
+        id_reason = request.data.get('reason_id', 0)
+        reason = 1
+        if id_reason:
+            reason = AvailabilityReason.objects.filter(id_reason = id_reason)
+        
         availability = RoomAvailability.objects.create(
             room=room,
             begin_datetime=begin,
             end_datetime=end,
-            reason_id=request.data.get('reason_id')
+            reason_id=reason.name
         )
         
         response_data = {
             'id': availability.id_status_room,
-            'room_id': availability.room_id,
+            'room_id': availability.room,
             'begin_datetime': availability.begin_datetime,
             'end_datetime': availability.end_datetime,
-            'reason_id': availability.reason_id,
+            'reason_id': reason.name,
             'message': 'Период недоступности успешно создан'
         }
         
@@ -366,13 +372,12 @@ def availability_detail_room(request, location_id, room_id, availability_id):
     availability = get_object_or_404(
         RoomAvailability, 
         id_status_room=availability_id, 
-        room_id=room_id, 
-        room__location_id=location_id
+        room=room_id
     )
     
     data = {
         'id': availability.id_status_room,
-        'room_id': availability.room_id,
+        'room_id': availability.room,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason': {
@@ -393,8 +398,7 @@ def update_availability_room(request, location_id, room_id, availability_id):
     availability = get_object_or_404(
         RoomAvailability, 
         id_status_room=availability_id, 
-        room_id=room_id, 
-        room__location_id=location_id
+        room=room_id
     )
     
     # Обновление полей
@@ -403,7 +407,7 @@ def update_availability_room(request, location_id, room_id, availability_id):
     if 'end_datetime' in request.data:
         availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
     if 'reason_id' in request.data:
-        availability.reason_id = request.data['reason_id']
+        availability.reason = request.data['reason_id']
     
     # Проверка корректности дат
     if availability.begin_datetime >= availability.end_datetime:
@@ -414,10 +418,10 @@ def update_availability_room(request, location_id, room_id, availability_id):
     
     response_data = {
         'id': availability.id_status_room,
-        'room_id': availability.room_id,
+        'room_id': availability.room,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
-        'reason_id': availability.reason_id,
+        'reason_id': availability.reason,
         'message': 'Период недоступности успешно обновлен'
     }
     
@@ -433,8 +437,7 @@ def delete_availability_room(request, location_id, room_id, availability_id):
         availability = get_object_or_404(
             RoomAvailability, 
             id_status_room=availability_id, 
-            room_id=room_id, 
-            room__location_id=location_id
+            room=room_id
         )
         
         try:
@@ -456,12 +459,12 @@ def availability_loc(request, location_id):
         
         data = [
             {
-                'id': av.id_status_room,
-                'room_id': av.room_id,
+                'id': av.id_status_loc,
+                'location': av.location,
                 'begin_datetime': av.begin_datetime,
                 'end_datetime': av.end_datetime,
                 'reason': {
-                    'id': av.reason.id,
+                    'id': av.reason.id_reason,
                     'name': av.reason.name
                 } if av.reason else None
             }
@@ -504,11 +507,11 @@ def create_availability_loc(request, location_id, room_id):
         )
         
         response_data = {
-            'id': availability.id_status_room,
+            'id': availability.id_status_loc,
             'location_id': availability.location,
             'begin_datetime': availability.begin_datetime,
             'end_datetime': availability.end_datetime,
-            'reason_id': availability.reason_id,
+            'reason_id': availability.reason,
             'message': 'Период недоступности успешно создан'
         }
         
@@ -517,7 +520,7 @@ def create_availability_loc(request, location_id, room_id):
     except ValueError as e:
         return JsonResponse({'error': 'Неверный формат даты. Используйте ISO формат (YYYY-MM-DD HH:MM:SS)'})
     
-def availability_detail_loc(request, location_id, room_id, availability_id):
+def availability_detail_loc(request, location_id, availability_id):
     if request.method != "GET":
         return JsonResponse({"message": "Invalid metod"})
     """
@@ -527,17 +530,16 @@ def availability_detail_loc(request, location_id, room_id, availability_id):
     availability = get_object_or_404(
         RoomAvailability, 
         id_status_room=availability_id, 
-        room_id=room_id, 
         room__location_id=location_id
     )
     
     data = {
         'id': availability.id_status_room,
-        'room_id': availability.room_id,
+        'room_id': availability.room,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason': {
-            'id': availability.reason.id,
+            'id': availability.reason.id_reason,
             'name': availability.reason.name
         } if availability.reason else None,
         'location_id': location_id
@@ -554,7 +556,6 @@ def update_availability_loc(request, location_id, room_id, availability_id):
     availability = get_object_or_404(
         LocationAvailability, 
         id_status_room=availability_id, 
-        room_id=room_id, 
         room__location_id=location_id
     )
     
@@ -564,7 +565,7 @@ def update_availability_loc(request, location_id, room_id, availability_id):
     if 'end_datetime' in request.data:
         availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
     if 'reason_id' in request.data:
-        availability.reason_id = request.data['reason_id']
+        availability.reason = request.data['reason_id']
     
     # Проверка корректности дат
     if availability.begin_datetime >= availability.end_datetime:
@@ -574,11 +575,11 @@ def update_availability_loc(request, location_id, room_id, availability_id):
     availability.save()
     
     response_data = {
-        'id': availability.id_status_room,
+        'id': availability.id_status_loc,
         'location_id': availability.location,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
-        'reason_id': availability.reason_id,
+        'reason_id': availability.reason,
         'message': 'Период недоступности успешно обновлен'
     }
     
