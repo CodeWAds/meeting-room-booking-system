@@ -307,7 +307,12 @@ def get_available_rooms(request):
             id_location=id_location
         ).exclude(Q(bookings__date=date) & Q(bookings__slot__in=time_slots) |
     Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
-            
+    
+    available_rooms = Room.objects.filter(
+            id_location=id_location
+        ).exclude(Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
+    
+    print(available_rooms)
 
 
 
