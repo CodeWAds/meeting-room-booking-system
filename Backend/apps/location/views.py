@@ -226,17 +226,16 @@ def delete_time_slot(request, location_id, slot_id):
 def get_available_rooms(request):
     if request.method != "GET":
         return JsonResponse({"message": "Invalid metod"})
-    try:
-            data = json.loads(request.body)
-            id_location = data.get('location')
-            date_str = data.get('date')
-            time_slot_ids = data.get('time_slot', [])
-            
-            if not all([id_location, date_str, time_slot_ids]):
-                return JsonResponse({"error": "Missing required parameters"}, status=400)
+
+    data = json.loads(request.body)
+    id_location = data.get('location')
+    date_str = data.get('date')
+    time_slot_ids = data.get('time_slot', [])
+    
+    if not all([id_location, date_str, time_slot_ids]):
+        return JsonResponse({"error": "Missing required parameters"}, status=400)
                 
-    except (json.JSONDecodeError, KeyError) as e:
-        return JsonResponse({"error": "Invalid request data"}, status=400)
+    
 
     try:
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -244,13 +243,13 @@ def get_available_rooms(request):
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
     try:
-            time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
+            time_slots = TimeSlot.objects.filter(id_time_slot=time_slot_ids)
             if not time_slots.exists():
                 return JsonResponse({"error": "No valid time slots found"}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Error retrieving time slots"}, status=500)
 
-    time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
+    time_slots = TimeSlot.objects.filter(id_time_slot=time_slot_ids)
     if not time_slots.exists():
         return JsonResponse({"error": "No valid time slots found"}, status=400)
     
@@ -258,19 +257,19 @@ def get_available_rooms(request):
     if not Location.objects.filter(id_location=id_location).exists():
         return JsonResponse({"error": "Location not found"}, status=404)
     available_rooms = Room.objects.filter(id_location=id_location)
-
+    exclude_conditions = Q(bookings__date=date) & Q(bookings__slot__in=time_slots)
     available_rooms = Room.objects.filter(
             id_location=id_location
         ).exclude(
-            Q(booking__date=date) & 
-            Q(booking__time_slots__in=time_slots)
-        ).distinct().select_related('location')
+            Q(bookings__date=date) & 
+            Q(bookings__slot__in=time_slots)
+        ).distinct().select_related('id_location')
     location = Location.objects.filter(id_location= id_location)
     room_list = [
             {
                 "id": room.id_room,
                 "name": room.room_name,
-                "location": location.name,
+                "location": room.id_location.name,
                 "capacity": room.capacity
             }
             for room in available_rooms

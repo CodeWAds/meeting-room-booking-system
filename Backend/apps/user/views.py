@@ -37,7 +37,7 @@ def login_by_telegram(request):
         return JsonResponse({"message": "User is banned"}, status=403)
 
     login(request, user)
-    return JsonResponse({"message": "Login via Telegram successful", "username": user.id_user})
+    return JsonResponse({"message": "Login via Telegram successful", "id_user": user.id_user})
     
     
 
