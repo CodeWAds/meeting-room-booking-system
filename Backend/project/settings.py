@@ -20,11 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
     # устанавливаем значения по умолчанию
-    DEBUG=(bool, False)
+    DEBUG=(bool, True)
 )
 
 # Читаем .env файл
 environ.Env.read_env()
+
+DEBUG = True
 
 
 # Quick-start development settings - unsuitable for production
@@ -35,7 +37,6 @@ SECRET_KEY = 'django-insecure-j5$@=0(@$za*u=-*ne#8s!4f)i+(00&3+75%1v!tv+)^!m999$
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-DEBUG = False
 
 ALLOWED_HOSTS = ['sivann.ru','bmr.sivann.ru','pma.sivann.ru', "127.0.0.1"]
 

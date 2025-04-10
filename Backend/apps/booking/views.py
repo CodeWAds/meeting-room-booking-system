@@ -19,8 +19,8 @@ def get_booking(request):
     for currect_booking in bookings:
         currect_booking = {
             "id_booking": currect_booking.id_booking,
-            "user": currect_booking.user.id,
-            "room": currect_booking.room.id,
+            "user": currect_booking.user.id_user,
+            "room": currect_booking.room.id_room,
             "date": currect_booking.date,
             "review": currect_booking.review,
             "status": currect_booking.status,
@@ -63,8 +63,8 @@ def booking_detail(request, booking_id):
     booking = get_object_or_404(Booking, id_booking=booking_id)
     return JsonResponse({
         "id_booking": booking.id_booking,
-        "user_id": booking.user_id,
-        "room_id": booking.room_id,
+        "user_id": booking.user.id_user,
+        "room_id": booking.room.id_room,
         "date": booking.date.isoformat(),
         "review": booking.review,
         "status": booking.status,
@@ -102,13 +102,13 @@ def get_user_bookings(request, user_id):
     """ Получение всех бронирований для конкретного пользователя """
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
-    bookings = Booking.objects.filter(user_id=user_id)
+    bookings = Booking.objects.filter(user=user_id)
     
     final_list = []
     for booking in bookings:
         booking_data = {
             "id_booking": booking.id_booking,
-            "user": booking.user.user_id,  # Используем user_id вместо id
+            "user": booking.user.id_user,  
             "room": booking.room.id_room,
             "date": booking.date.isoformat(),
             "review": booking.review,
