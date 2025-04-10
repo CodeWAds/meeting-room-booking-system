@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from 'react';
-import AdminHeaderNav from '../../../components/Admin';
 import styles from '../../../styles/Admin.module.css';
 
 export default function RoomsPage() {
@@ -25,8 +24,6 @@ export default function RoomsPage() {
 
 
   return (
-    <div className={styles.adminLayout}>
-      <AdminHeaderNav />
       <main className={styles.content}>
         <div className={styles.contentHeader}>
           <h2 className={styles.pageTitle}>Комнаты</h2>
@@ -67,6 +64,5 @@ export default function RoomsPage() {
           </table>
         </div>
       </main>
-    </div>
   );
 }
