@@ -19,6 +19,9 @@ def get_booking(request):
     for currect_booking in bookings:
         currect_booking = {
             "id_booking": currect_booking.id_booking,
+            "room_name": currect_booking.room.room_name,
+            "location_name": currect_booking.room.id_location.name,
+            "capacity": currect_booking.room.capacity,
             "user": currect_booking.user.id_user,
             "room": currect_booking.room.id_room,
             "date": currect_booking.date,
@@ -65,6 +68,9 @@ def booking_detail(request, booking_id):
         "id_booking": booking.id_booking,
         "user_id": booking.user.id_user,
         "room_id": booking.room.id_room,
+        "room_name": booking.room.room_name,
+        "location_name": booking.room.id_location.name,
+        "capacity": booking.room.capacity,
         "date": booking.date.isoformat(),
         "review": booking.review,
         "status": booking.status,
@@ -108,6 +114,9 @@ def get_user_bookings(request, user_id):
     for booking in bookings:
         booking_data = {
             "id_booking": booking.id_booking,
+            "room_id": booking.room.id_room,
+            "room_name": booking.room.room_name,
+            "location_name": booking.room.id_location.name,
             "user": booking.user.id_user,  
             "room": booking.room.id_room,
             "date": booking.date.isoformat(),

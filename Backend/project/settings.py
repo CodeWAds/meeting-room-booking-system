@@ -26,7 +26,10 @@ env = environ.Env(
 # Читаем .env файл
 environ.Env.read_env()
 
-DEBUG = True
+if env('DEBUG') != None:
+    DEBUG = env('DEBUG')
+else:
+    DEBUG = False
 
 
 # Quick-start development settings - unsuitable for production

@@ -23,7 +23,6 @@ def create_location(request):
     location = Location.objects.create(name=data["name"], address=data["address"])
     return JsonResponse({"id_location": location.id_location, "name": location.name, "address": location.address})
 
-
 def location_detail(request, location_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
@@ -84,7 +83,6 @@ def create_room(request, location_id):
     room.id_equipment.set(equipment_ids)
     return JsonResponse({"id_room": room.id_room, "room_name": room.room_name, "capacity": room.capacity, "id_equipment": list(room.id_equipment.values_list('id_equipment', flat=True))})
 
-
 def room_detail(request, location_id, room_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
@@ -144,6 +142,62 @@ def get_time_slot(request, location_id):
     
     return JsonResponse({"time_slots": time_slot_list})
 
+def get_time_slot_availability(request, location_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    data = json.loads(request.body)
+    date = data.get("date")
+    if not date:
+        return JsonResponse({"message": "Date is required"})
+    
+    try:
+        date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+    # Получаем все временные слоты для указанного местоположения
+    time_slots = TimeSlot.objects.filter(id_location=location_id)
+
+    # Получаем идентификаторы временных слотов
+    time_slot_ids = time_slots.values_list('id_time_slot', flat=True)
+
+    # Получаем специальные временные слоты, используя идентификаторы
+    time_slots_special = SpecialTimeSlot.objects.filter(id_time_slot__in=time_slot_ids, date=date)
+
+    time_slot_list = []
+
+    location = Location.objects.filter(
+    Q(locationavailability__begin_datetime__lt=date) & 
+    Q(locationavailability__end_datetime__gt=date)).distinct()
+    if location :
+        return JsonResponse({"message": "Location not available"})
+
+
+    if time_slots_special:
+        for time_slot in time_slots_special:
+            time_slot_reg = TimeSlot.objects.filter(id_time_slot=time_slot.id_time_slot.id_time_slot).first()
+            slot_data = {
+            "id_time_slot": time_slot_reg.id_time_slot,
+            "time_begin": str(time_slot_reg.time_begin),
+            "time_end": str(time_slot_reg.time_end),
+            "slot_type": time_slot_reg.slot_type,
+            "special_date": time_slot.date}
+        time_slot_list.append(slot_data)
+    
+    else:
+        for time_slot in time_slots:
+            if time_slot.slot_type == "special":
+                continue
+            slot_data = {
+                "id_time_slot": time_slot.id_time_slot,
+                "time_begin": str(time_slot.time_begin),
+                "time_end": str(time_slot.time_end),
+                "slot_type": time_slot.slot_type
+            }
+            time_slot_list.append(slot_data)
+    
+    return JsonResponse({"time_slots": time_slot_list})
+
 def create_time_slot(request, location_id):
     if request.method != "POST":
         return JsonResponse({"message": "Method not supported"})
@@ -169,7 +223,6 @@ def create_time_slot(request, location_id):
         )
     return JsonResponse({"id_time_slot": time_slot.id_time_slot, "time_begin": str(time_slot.time_begin), "time_end": str(time_slot.time_end), "slot_type": time_slot.slot_type})
 
-
 def time_slot_detail(request, location_id, slot_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
@@ -180,9 +233,6 @@ def time_slot_detail(request, location_id, slot_id):
     if time_slot.slot_type == "special":
         return JsonResponse({"id_time_slot": time_slot.id_time_slot, "time_begin": str(time_slot.time_begin), "time_end": str(time_slot.time_end), "slot_type": time_slot.slot_type, "special_date": special.date})
     
-
-
-
 def update_time_slot(request, location_id, slot_id):
     if request.method != "PATCH":
         return JsonResponse({"message": "Method not supported"})
@@ -213,7 +263,6 @@ def update_time_slot(request, location_id, slot_id):
     time_slot.save()
     return JsonResponse({"message": "TimeSlot обновлен", "id_time_slot": time_slot.id_time_slot})
 
-
 def delete_time_slot(request, location_id, slot_id):
     if request.method != "DELETE":
         return JsonResponse({"message": "Method not supported"})
@@ -226,17 +275,16 @@ def delete_time_slot(request, location_id, slot_id):
 def get_available_rooms(request):
     if request.method != "GET":
         return JsonResponse({"message": "Invalid metod"})
-    try:
-            data = json.loads(request.body)
-            id_location = data.get('location')
-            date_str = data.get('date')
-            time_slot_ids = data.get('time_slot', [])
-            
-            if not all([id_location, date_str, time_slot_ids]):
-                return JsonResponse({"error": "Missing required parameters"}, status=400)
+
+    data = json.loads(request.body)
+    id_location = data.get('location')
+    date_str = data.get('date')
+    time_slot_ids = data.get('time_slot', [])
+    
+    if not all([id_location, date_str, time_slot_ids]):
+        return JsonResponse({"error": "Missing required parameters"}, status=400)
                 
-    except (json.JSONDecodeError, KeyError) as e:
-        return JsonResponse({"error": "Invalid request data"}, status=400)
+    
 
     try:
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -244,33 +292,28 @@ def get_available_rooms(request):
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
     try:
-            time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
-            if not time_slots.exists():
-                return JsonResponse({"error": "No valid time slots found"}, status=400)
+        time_slots = TimeSlot.objects.filter(id_time_slot=time_slot_ids)
+        if not time_slots.exists():
+            return JsonResponse({"error": "No valid time slots found"}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Error retrieving time slots"}, status=500)
 
-    time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
-    if not time_slots.exists():
-        return JsonResponse({"error": "No valid time slots found"}, status=400)
     
     # Проверяем существование локации
     if not Location.objects.filter(id_location=id_location).exists():
         return JsonResponse({"error": "Location not found"}, status=404)
-    available_rooms = Room.objects.filter(id_location=id_location)
-
+    
     available_rooms = Room.objects.filter(
             id_location=id_location
-        ).exclude(
-            Q(booking__date=date) & 
-            Q(booking__time_slots__in=time_slots)
-        ).distinct().select_related('location')
+        ).exclude(Q(bookings__date=date) & Q(bookings__slot__in=time_slots) |
+    Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
+
     location = Location.objects.filter(id_location= id_location)
     room_list = [
             {
                 "id": room.id_room,
                 "name": room.room_name,
-                "location": location.name,
+                "location": room.id_location.name,
                 "capacity": room.capacity
             }
             for room in available_rooms
@@ -284,6 +327,7 @@ def get_available_rooms(request):
         })
 
 
+
 def availability_room(request, location_id, room_id):
         if request.method != "GET":
             return JsonResponse({"message": "Invalid metod"})
@@ -291,13 +335,13 @@ def availability_room(request, location_id, room_id):
         Получить все периоды недоступности для комнаты
         GET /locations/<location_id>/rooms/<room_id>/availability/
         """
-        room = get_object_or_404(Room, id=room_id, location_id=location_id)
+        room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
         availabilities = RoomAvailability.objects.filter(room=room)
         
         data = [
             {
                 'id': av.id_status_room,
-                'room_id': av.room,
+                'room_id': av.room.id_room,
                 'begin_datetime': av.begin_datetime,
                 'end_datetime': av.end_datetime,
                 'reason': {
@@ -308,7 +352,7 @@ def availability_room(request, location_id, room_id):
             for av in availabilities
         ]
         
-        return JsonResponse(data)
+        return JsonResponse({"Availability":data})
 
 def create_availability_room(request, location_id, room_id):
     if request.method != "POST":
@@ -317,18 +361,18 @@ def create_availability_room(request, location_id, room_id):
     Создать новый период недоступности
     POST /locations/<location_id>/rooms/<room_id>/availability/create_availability/
     """
-    room = get_object_or_404(Room, id=room_id, id_location=location_id)
-
+    room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
+    data = json.loads(request.body)
     required_fields = ['begin_datetime', 'end_datetime']
     for field in required_fields:
-        if field not in request.data:
+        if field not in data:
             return JsonResponse(
                 {'error': f'Отсутствует обязательное поле: {field}'}
             )
     
     try:
-        begin = datetime.fromisoformat(request.data['begin_datetime'])
-        end = datetime.fromisoformat(request.data['end_datetime'])
+        begin = datetime.fromisoformat(data['begin_datetime'])
+        end = datetime.fromisoformat(data['end_datetime'])
         
         if begin >= end:
             return JsonResponse(
@@ -336,24 +380,25 @@ def create_availability_room(request, location_id, room_id):
             )
         
         # Создание записи
-        id_reason = request.data.get('reason_id', 0)
-        reason = 1
+        id_reason = data.get('reason_id', None)
         if id_reason:
             reason = AvailabilityReason.objects.filter(id_reason = id_reason)
+        else:
+            reason = None
         
         availability = RoomAvailability.objects.create(
             room=room,
             begin_datetime=begin,
             end_datetime=end,
-            reason_id=reason.name
+            reason_id=reason
         )
         
         response_data = {
             'id': availability.id_status_room,
-            'room_id': availability.room,
+            'room_id': availability.room.id_room,
             'begin_datetime': availability.begin_datetime,
             'end_datetime': availability.end_datetime,
-            'reason_id': reason.name,
+            'reason_id': reason.name if reason else None,
             'message': 'Период недоступности успешно создан'
         }
         
@@ -377,7 +422,7 @@ def availability_detail_room(request, location_id, room_id, availability_id):
     
     data = {
         'id': availability.id_status_room,
-        'room_id': availability.room,
+        'room_id': availability.room.id_room,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason': {
@@ -400,14 +445,15 @@ def update_availability_room(request, location_id, room_id, availability_id):
         id_status_room=availability_id, 
         room=room_id
     )
+    data = json.loads(request.body)
     
     # Обновление полей
-    if 'begin_datetime' in request.data:
-        availability.begin_datetime = datetime.fromisoformat(request.data['begin_datetime'])
-    if 'end_datetime' in request.data:
-        availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
-    if 'reason_id' in request.data:
-        availability.reason = request.data['reason_id']
+    if 'begin_datetime' in data:
+        availability.begin_datetime = datetime.fromisoformat(data['begin_datetime'])
+    if 'end_datetime' in data:
+        availability.end_datetime = datetime.fromisoformat(data['end_datetime'])
+    if 'reason_id' in data:
+        availability.reason = data['reason_id']
     
     # Проверка корректности дат
     if availability.begin_datetime >= availability.end_datetime:
@@ -418,7 +464,7 @@ def update_availability_room(request, location_id, room_id, availability_id):
     
     response_data = {
         'id': availability.id_status_room,
-        'room_id': availability.room,
+        'room_id': availability.room.id_room,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason_id': availability.reason,
@@ -454,13 +500,13 @@ def availability_loc(request, location_id):
         Получить все периоды недоступности для комнаты
         GET /locations/<location_id>/rooms/<room_id>/availability/
         """
-        location = get_object_or_404(Location, location_id=location_id)
+        location = get_object_or_404(Location, id_location=location_id)
         availabilities = LocationAvailability.objects.filter(location_id=location_id)
         
         data = [
             {
                 'id': av.id_status_loc,
-                'location': av.location,
+                'location': av.location.id_location,
                 'begin_datetime': av.begin_datetime,
                 'end_datetime': av.end_datetime,
                 'reason': {
@@ -471,27 +517,28 @@ def availability_loc(request, location_id):
             for av in availabilities
         ]
         
-        return JsonResponse(data)
+        return JsonResponse({"Availabilities" : data})
 
-def create_availability_loc(request, location_id, room_id):
+def create_availability_loc(request, location_id):
     if request.method != "POST":
         return JsonResponse({"message": "Invalid metod"})
     """
     Создать новый период недоступности
     POST /locations/<location_id>/rooms/<room_id>/availability/create_availability/
     """
-    location = get_object_or_404(Location, location_id=location_id)
+    location = get_object_or_404(Location, id_location=location_id)
+    data = json.loads(request.body)
 
     required_fields = ['begin_datetime', 'end_datetime']
     for field in required_fields:
-        if field not in request.data:
+        if field not in data:
             return JsonResponse(
                 {'error': f'Отсутствует обязательное поле: {field}'}
             )
     
     try:
-        begin = datetime.fromisoformat(request.data['begin_datetime'])
-        end = datetime.fromisoformat(request.data['end_datetime'])
+        begin = datetime.fromisoformat(data['begin_datetime'])
+        end = datetime.fromisoformat(data['end_datetime'])
         
         if begin >= end:
             return JsonResponse(
@@ -503,12 +550,12 @@ def create_availability_loc(request, location_id, room_id):
             location=location,
             begin_datetime=begin,
             end_datetime=end,
-            reason_id=request.data.get('reason_id')
+            reason_id=data.get('reason_id')
         )
         
         response_data = {
             'id': availability.id_status_loc,
-            'location_id': availability.location,
+            'location_id': availability.location.id_location,
             'begin_datetime': availability.begin_datetime,
             'end_datetime': availability.end_datetime,
             'reason_id': availability.reason,
@@ -528,14 +575,14 @@ def availability_detail_loc(request, location_id, availability_id):
     GET /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/
     """
     availability = get_object_or_404(
-        RoomAvailability, 
-        id_status_room=availability_id, 
-        room__location_id=location_id
+        LocationAvailability, 
+        id_status_loc=availability_id, 
+        location_id=location_id
     )
     
     data = {
-        'id': availability.id_status_room,
-        'room_id': availability.room,
+        'id': availability.id_status_loc,
+        'room_id': availability.location.id_location,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason': {
@@ -546,26 +593,27 @@ def availability_detail_loc(request, location_id, availability_id):
     }
     return JsonResponse(data)
 
-def update_availability_loc(request, location_id, room_id, availability_id):
+def update_availability_loc(request, location_id, availability_id):
     if request.method != "PATCH":
         return JsonResponse({"message": "Invalid metod"})
     """
     Обновить период недоступности
     PUT /locations/<location_id>/rooms/<room_id>/availability/<availability_id>/update
     """
+    data = data = json.loads(request.body)
     availability = get_object_or_404(
         LocationAvailability, 
-        id_status_room=availability_id, 
-        room__location_id=location_id
+        id_status_loc=availability_id, 
+        location_id=location_id
     )
     
     # Обновление полей
-    if 'begin_datetime' in request.data:
-        availability.begin_datetime = datetime.fromisoformat(request.data['begin_datetime'])
-    if 'end_datetime' in request.data:
-        availability.end_datetime = datetime.fromisoformat(request.data['end_datetime'])
-    if 'reason_id' in request.data:
-        availability.reason = request.data['reason_id']
+    if 'begin_datetime' in data:
+        availability.begin_datetime = datetime.fromisoformat(data['begin_datetime'])
+    if 'end_datetime' in data:
+        availability.end_datetime = datetime.fromisoformat(data['end_datetime'])
+    if 'reason_id' in data:
+        availability.reason = data['reason_id']
     
     # Проверка корректности дат
     if availability.begin_datetime >= availability.end_datetime:
@@ -576,7 +624,7 @@ def update_availability_loc(request, location_id, room_id, availability_id):
     
     response_data = {
         'id': availability.id_status_loc,
-        'location_id': availability.location,
+        'location_id': availability.location.id_location,
         'begin_datetime': availability.begin_datetime,
         'end_datetime': availability.end_datetime,
         'reason_id': availability.reason,
@@ -585,7 +633,7 @@ def update_availability_loc(request, location_id, room_id, availability_id):
     
     return JsonResponse(response_data)
 
-def delete_availability_loc(request, location_id, room_id, availability_id):
+def delete_availability_loc(request, location_id, availability_id):
         if request.method != "DELETE":
             return JsonResponse({"message": "Invalid metod"})
         """
@@ -594,7 +642,7 @@ def delete_availability_loc(request, location_id, room_id, availability_id):
         """
         availability = get_object_or_404(
             LocationAvailability, 
-            id_status_room=availability_id, 
+            id_status_loc=availability_id, 
             location=location_id
         )
         
