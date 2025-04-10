@@ -26,10 +26,7 @@ env = environ.Env(
 # Читаем .env файл
 environ.Env.read_env()
 
-if env('DEBUG') != None:
-    DEBUG = env('DEBUG')
-else:
-    DEBUG = False
+DEBUG = True
 
 
 # Quick-start development settings - unsuitable for production
@@ -41,7 +38,7 @@ SECRET_KEY = 'django-insecure-j5$@=0(@$za*u=-*ne#8s!4f)i+(00&3+75%1v!tv+)^!m999$
 # SECURITY WARNING: don't run with debug turned on in production!
 
 
-ALLOWED_HOSTS = ['sivann.ru','bmr.sivann.ru','pma.sivann.ru', "127.0.0.1"]
+ALLOWED_HOSTS = ['sivann.ru','bmr.sivann.ru','pma.sivann.ru', '127.0.0.1']
 
 
 # Application definition
@@ -57,16 +54,26 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "https://bmr.sivann.ru",
+    "https://sivann.ru",
+    "https://pma.sivann.ru",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
 ]
 
 ROOT_URLCONF = 'project.urls'
@@ -147,3 +154,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
