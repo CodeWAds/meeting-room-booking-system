@@ -143,7 +143,7 @@ def get_time_slot(request, location_id):
     return JsonResponse({"time_slots": time_slot_list})
 
 def get_time_slot_availability(request, location_id):
-    if request.method != "GET":
+    if request.method != "POST":
         return JsonResponse({"message": "Method not supported"})
     data = json.loads(request.body)
     date = data.get("date")
@@ -273,7 +273,7 @@ def delete_time_slot(request, location_id, slot_id):
 
 
 def get_available_rooms(request):
-    if request.method != "GET":
+    if request.method != "POST":
         return JsonResponse({"message": "Invalid metod"})
 
     data = json.loads(request.body)
