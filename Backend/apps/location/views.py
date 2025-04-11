@@ -292,7 +292,7 @@ def get_available_rooms(request):
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
     try:
-        time_slots = TimeSlot.objects.filter(id_time_slot=time_slot_ids)
+        time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
         if not time_slots.exists():
             return JsonResponse({"error": "No valid time slots found"}, status=400)
     except Exception as e:
