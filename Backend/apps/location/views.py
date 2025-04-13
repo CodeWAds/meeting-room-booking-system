@@ -279,15 +279,16 @@ def get_available_rooms(request):
     data = json.loads(request.body)
     id_location = data.get('location')
     date_str = data.get('date')
+    user_id = data.get('user_id')
     time_slot_ids = data.get('time_slot', [])
     
-    if not all([id_location, date_str, time_slot_ids]):
+    if not all([id_location, date_str, time_slot_ids, user_id]):
         return JsonResponse({"error": "Missing required parameters"}, status=400)
                 
     
 
     try:
-            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        date = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
@@ -307,14 +308,15 @@ def get_available_rooms(request):
             id_location=id_location
         ).exclude(Q(bookings__date=date) & Q(bookings__slot__in=time_slots) |
     Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
-
+    from apps.user.models import FavoriteRoom
     location = Location.objects.filter(id_location= id_location)
     room_list = [
             {
                 "id": room.id_room,
                 "name": room.room_name,
                 "location": room.id_location.name,
-                "capacity": room.capacity
+                "capacity": room.capacity,
+                "favourite": FavoriteRoom.objects.filter(room = room, user__pk = user_id).exists()
             }
             for room in available_rooms
         ]
