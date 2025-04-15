@@ -23,7 +23,6 @@ def login_by_telegram(request):
     if not id_telegram:
         return JsonResponse({"message": "Parameter 'telegram_id' is required."})
 
-    print(id_telegram)
     if CustomUser.objects.filter(id_telegram=id_telegram).exists():
         user = CustomUser.objects.filter(id_telegram=id_telegram).first()
     else :
@@ -153,26 +152,19 @@ def get_user(request, id_user):
 
 
 def user_create_tg(username, id_telegram):
-    try:
-        # Проверка на уникальность username
-        if CustomUser.objects.filter(id_telegram=id_telegram).exists():
-            return 0
+    # Проверка на уникальность username
+    if CustomUser.objects.filter(id_telegram=id_telegram).exists():
+        return 0
 
-        print(id_telegram)
-        # Создание пользователя
-        user = CustomUser(username=username, id_telegram=id_telegram)
-        status = "active"
-        user.set_status(status)
-        user.save()  # Сохраняем пользователя, чтобы получить ID
-        user_role = UserRole.objects.create(user=user, role="user")
-        UserProfile.objects.create(user_role=user_role)
-
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-    except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    print(id_telegram)
+    # Создание пользователя
+    user = CustomUser(username=username, id_telegram=id_telegram)
+    status = "active"
+    user.set_status(status)
+    user.save()  # Сохраняем пользователя, чтобы получить ID
+    user_role = UserRole.objects.create(user=user, role="user")
+    UserProfile.objects.create(user_role=user_role)
+    return user
 
 def user_create(request):
     if request.method != "POST":
