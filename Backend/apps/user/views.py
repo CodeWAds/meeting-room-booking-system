@@ -110,8 +110,6 @@ def get_role(request, id_user):
             'roles': role_list
         }
 
-       
-
         return JsonResponse(data, status=200)
 
     except Exception as e:

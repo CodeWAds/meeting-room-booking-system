@@ -11,6 +11,34 @@ from apps.user.models import FavoriteRoom
 import hashlib, random, datetime
 
 
+
+def booking_location(request, location_id):
+    """ Получение всех бронирований """
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    rooms = Room.objects.filter(id_location = location_id)
+    if not rooms.exists():
+        return JsonResponse({"message": "Location not found"}, status=404)
+
+    bookings = Booking.objects.filter(room__in = rooms)  # Получаем объекты, 
+    final_list = []
+    for currect_booking in bookings:
+        currect_booking = {
+            "id_booking": currect_booking.id_booking,
+            "room_name": currect_booking.room.room_name,
+            "location_name": currect_booking.room.id_location.name,
+            "capacity": currect_booking.room.capacity,
+            "user": currect_booking.user.id_user,
+            "room": currect_booking.room.id_room,
+            "date": currect_booking.date,
+            "review": currect_booking.review,
+            "status": currect_booking.status,
+            "time_slot": list(currect_booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+            "verify code": currect_booking.code
+        }
+        final_list.append(currect_booking)
+    return JsonResponse({"Booking": final_list})
+
 def generate_code(data):
     data = {
     "user_id": data["user_id"],

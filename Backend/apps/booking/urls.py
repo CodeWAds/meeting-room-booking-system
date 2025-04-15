@@ -12,6 +12,8 @@ urlpatterns = [
     
     path('verify_code/', views.verify_code, name='veryfy_code'),
 
+    path('location/<int:location_id>/', views.booking_location, name='booking_location'),
+
     path('<int:location_id>/rooms/<int:room_id>/time_slot_stats/', views.room_time_slot_stats, name='room_hourly_usage_stats'),
 
     path('upcoming-notifications/', views.get_upcoming_bookings_for_notifications, name='upcoming_notifications'),
