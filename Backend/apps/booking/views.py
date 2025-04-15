@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from .models import Booking, TimeSlot, Room
 from apps.location.models import Location, TimeSlot, SpecialTimeSlot
 from apps.user.models import FavoriteRoom
-import hashlib, random
+import hashlib, random, datetime
 
 
 def generate_code(data):
@@ -81,6 +81,16 @@ def create_booking(request):
     if request.method != "POST":
         return JsonResponse({"message": "Method not supported"})
     data = json.loads(request.body)
+
+    data_date_str = data["date"]  # Предположим, это строка
+    data_date = datetime.datetime.fromisoformat(data_date_str).date()
+
+    # Получаем текущее время
+    now = datetime.datetime.now().date()
+
+    # Сравнение
+    if data_date < now:
+        return JsonResponse({"message": "Date must be today or in the future"})
     
     # Ensure that data["slot"] is a list
     slot_ids = data["slot"]
