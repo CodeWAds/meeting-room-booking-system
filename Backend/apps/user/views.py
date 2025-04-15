@@ -31,7 +31,7 @@ def login_by_telegram(request):
     try:
         user = CustomUser.objects.get(id_telegram=telegram_id_int)
     except CustomUser.DoesNotExist:
-        user_create_tg(username, id_telegram)
+        user = user_create_tg(username, id_telegram)
 
     if user.status == "banned":
         return JsonResponse({"message": "User is banned"}, status=403)
