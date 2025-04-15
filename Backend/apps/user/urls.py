@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:id_user>/update/', views.user_update, name='update_user'),
     path('<int:id_user>/soft_delete/', views.user_soft_delete, name='user_soft_delete'),
     path('<int:id_user>/permanent_delete/', views.user_permanent_delete, name='user_permanent_delete'),
+    path("<int:id_user>/get_roles/", views.get_role, name="get_roles"), 
 
     #favourite_rooms
     path("<int:id_user>/favourite_rooms/", views.get_favourite_rooms, name="favourite-rooms"),  
