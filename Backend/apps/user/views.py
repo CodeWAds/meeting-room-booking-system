@@ -4,6 +4,7 @@ from .models import CustomUser, UserProfile, ManagerProfile, UserRole, FavoriteR
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from apps.location.models import Room, Location
+from apps.equipment.models import Equipment
 from django.contrib.auth import authenticate, login, logout
 
 
@@ -319,7 +320,6 @@ def user_permanent_delete(request, id_user):
 
         
 
-@csrf_exempt
 def add_favourite_room(request, id_user):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -342,7 +342,6 @@ def add_favourite_room(request, id_user):
             
         return JsonResponse({
             "message": message,
-            "favorite_id": favorite.favorite_id,
             "room_id": favorite.room.id_room,
             "id_user": favorite.user.id_user,
         })
@@ -350,16 +349,21 @@ def add_favourite_room(request, id_user):
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Неверный формат JSON.")
 
-@csrf_exempt  
-def favourite_room_detail(request,id_user, favorite_id):
+def favourite_room_detail(request,id_user, room_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
-    favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
-    
+    favorite = get_object_or_404(FavoriteRoom, room = room_id, user = id_user)
+    list_equip = list(favorite.room.id_equipment.values_list('id_equipment', flat=True))
+    final_equip = []
+    for i in range(len(list_equip)):
+        equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+        final_equip.append({"name" : equipment.name, "description": equipment.description})
     return JsonResponse({
         "favorite_id": favorite.favorite_id,
-        "room_id": favorite.room.id_room,
-        "id_user": favorite.user.id_user,
+        "id_room": favorite.room.id_room,
+        "room_name": favorite.room.room_name, 
+        "capacity": favorite.room.capacity, 
+        "id_equipment": final_equip
     })
 
 def get_favourite_rooms(request, id_user):
@@ -369,17 +373,25 @@ def get_favourite_rooms(request, id_user):
     favorites = FavoriteRoom.objects.filter(user=id_user)
     data = []
     for fav in favorites:
+        list_equip = list(fav.room.id_equipment.values_list('id_equipment', flat=True))
+        final_equip = []
+        for i in range(len(list_equip)):
+            equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+            final_equip.append({"name" : equipment.name, "description": equipment.description})
         data.append({
             "favorite_id": fav.favorite_id,
             "room_id": fav.room.id_room,
             "id_user": fav.user.id_user,
+            "room_name": fav.room.room_name, 
+            "capacity": fav.room.capacity, 
+            "id_equipment": final_equip
         })
     return JsonResponse(data, safe=False)
 
-def delete_favourite_room(request,id_user, favorite_id):
+def delete_favourite_room(request,id_user, room_id):
     if request.method != "DELETE":
         return HttpResponseNotAllowed(["DELETE"])
     
-    favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
+    favorite = get_object_or_404(FavoriteRoom, room = room_id, user = id_user)
     favorite.delete()
-    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite_id})
+    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite.room})
