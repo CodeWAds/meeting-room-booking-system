@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from .models import Booking, TimeSlot, Room
 from apps.location.models import Location, TimeSlot, SpecialTimeSlot
+from apps.user.models import FavoriteRoom
 
 
 
@@ -112,6 +113,7 @@ def get_user_bookings(request, user_id):
     
     final_list = []
     for booking in bookings:
+        favorite = FavoriteRoom.objects.filter(room = booking.room, user = booking.user).exists()
         booking_data = {
             "id_booking": booking.id_booking,
             "room_id": booking.room.id_room,
@@ -123,6 +125,7 @@ def get_user_bookings(request, user_id):
             "review": booking.review,
             "status": booking.status,
             "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+            "favorite": favorite,
         }
         final_list.append(booking_data)
     
