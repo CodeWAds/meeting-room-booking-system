@@ -19,6 +19,7 @@ class Booking(models.Model):
     review = models.PositiveSmallIntegerField(null=True, blank=True)  # Оценка может быть необязательной
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     slot = models.ManyToManyField(TimeSlot) 
+    code = models.IntegerField()
 
     def __str__(self):
         return f"Booking {self.id_booking} - {self.user.username} - {self.status}"

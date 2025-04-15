@@ -8,6 +8,28 @@ from django.http import JsonResponse
 from .models import Booking, TimeSlot, Room
 from apps.location.models import Location, TimeSlot, SpecialTimeSlot
 from apps.user.models import FavoriteRoom
+import hashlib, random
+
+
+def generate_code(data):
+    data = {
+    "user_id": data["user_id"],
+    "room_id": data["room_id"],
+    "date": data["date"],
+    "review": data.get("review"),
+    "status": data.get("status", "pending"),
+    "slot_ids": data["slot"]
+    }
+
+    data_string = json.dumps(data, sort_keys=True)
+
+    hash_object = hashlib.sha256(data_string.encode())
+    hash_hex = hash_object.hexdigest()
+    seed = int(hash_hex, 16)
+    random.seed(seed)
+    code = random.randint(100000, 999999)  
+    return code
+    
 
 
 
@@ -29,6 +51,7 @@ def get_booking(request):
             "review": currect_booking.review,
             "status": currect_booking.status,
             "time_slot": list(currect_booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+            "verify code": currect_booking.code
         }
         final_list.append(currect_booking)
     return JsonResponse({"Booking": final_list})
@@ -45,13 +68,15 @@ def create_booking(request):
     slot_ids = data["slot"]
     if not isinstance(slot_ids, list):
         slot_ids = [slot_ids]
-    
+    code = generate_code(data)
+
     booking_obj = Booking.objects.create(
         user_id=data["user_id"],
         room_id=data["room_id"],
         date=data["date"],
         review=data.get("review"),
-        status=data.get("status", "pending")
+        status=data.get("status", "pending"),
+        code = code
     )
     
     time_slots = TimeSlot.objects.filter(id_time_slot__in=slot_ids)
@@ -75,7 +100,8 @@ def booking_detail(request, booking_id):
         "date": booking.date.isoformat(),
         "review": booking.review,
         "status": booking.status,
-        "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type"))
+        "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+        "verify code": booking.code
     })
 
 
@@ -126,6 +152,7 @@ def get_user_bookings(request, user_id):
             "status": booking.status,
             "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
             "favorite": favorite,
+            "verify code": booking.code
         }
         final_list.append(booking_data)
     
