@@ -5,7 +5,7 @@ from .models import Location, Room, TimeSlot, SpecialTimeSlot, RoomAvailability,
 from datetime import datetime, timedelta
 from apps.equipment.models import Equipment
 from django.db.models import Count, Q
-
+import datetime
 
 
 
@@ -149,9 +149,17 @@ def get_time_slot_availability(request, location_id):
     date = data.get("date")
     if not date:
         return JsonResponse({"message": "Date is required"})
+    data_date = datetime.datetime.fromisoformat(date).date()
+
+    # Получаем текущее время
+    now = datetime.datetime.now().date()
+
+    # Сравнение
+    if data_date < now:
+        return JsonResponse({"message": "Date must be today or in the future"})
     
     try:
-        date = datetime.strptime(date, "%Y-%m-%d").date()
+        date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
