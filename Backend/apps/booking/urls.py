@@ -13,6 +13,8 @@ urlpatterns = [
     path('verify_code/', views.verify_code, name='veryfy_code'),
 
     path('location/<int:location_id>/', views.booking_location, name='booking_location'),
+    path('<int:booking_id>/booking_extension/', views.booking_extension, name='booking_extension'),
+        
 
     path('upcoming-notifications/', views.get_upcoming_bookings_for_notifications, name='upcoming_notifications'),
 ]

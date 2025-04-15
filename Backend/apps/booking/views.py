@@ -11,6 +11,59 @@ from apps.user.models import FavoriteRoom
 import hashlib, random, datetime
 
 
+def booking_extension(request, booking_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    """ Получение информации о конкретном бронировании """
+    booking = get_object_or_404(Booking, id_booking=booking_id)
+    time_slot = list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type"))
+    last_time_slot = time_slot[-1]['time_end']
+
+
+
+    time_slots = TimeSlot.objects.filter(id_location=booking.room.id_location)
+    # Получаем идентификаторы временных слотов
+    time_slot_ids = time_slots.values_list('id_time_slot', flat=True)
+    # Получаем специальные временные слоты, используя идентификаторы
+    time_slots_special = SpecialTimeSlot.objects.filter(id_time_slot__in=time_slot_ids, date=booking.date)
+    time_slot_list = []
+    if time_slots_special:
+        for time_slot in time_slots_special:
+            time_slot_reg = TimeSlot.objects.filter(id_time_slot=time_slot.id_time_slot.id_time_slot).first()
+            slot_data = {
+            "id_time_slot": time_slot_reg.id_time_slot,
+            "time_begin": str(time_slot_reg.time_begin),
+            "time_end": str(time_slot_reg.time_end),
+            "slot_type": time_slot_reg.slot_type,
+            "special_date": time_slot.date}
+        time_slot_list.append(slot_data)
+    
+    else:
+        for time_slot in time_slots:
+            if time_slot.slot_type == "special":
+                continue
+            slot_data = {
+                "id_time_slot": time_slot.id_time_slot,
+                "time_begin": str(time_slot.time_begin),
+                "time_end": str(time_slot.time_end),
+                "slot_type": time_slot.slot_type
+            }
+            time_slot_list.append(slot_data)
+
+    time_slot_list = sorted(time_slot_list, key=lambda x: x["time_begin"])
+    next_time_slot = None
+    for slot in time_slot_list:
+        if  datetime.datetime.strptime(slot["time_begin"], "%H:%M:%S").time() >  last_time_slot:
+            next_time_slot = slot
+            break
+    if next_time_slot is None:
+        return JsonResponse({"message": "it's last time_slot"})
+    if not Booking.objects.filter(slot__in = [next_time_slot["id_time_slot"]], date = booking.date ).exists():
+        booking.slot.add(next_time_slot["id_time_slot"])
+        return JsonResponse({"message": "success"})
+    else:
+        return JsonResponse({"message": "no available slot"})
+            
 
 def booking_location(request, location_id):
     """ Получение всех бронирований в локации"""
