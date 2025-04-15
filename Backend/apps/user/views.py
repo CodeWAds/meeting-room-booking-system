@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 import  json
 
 def login_by_telegram(request):
-    if request.method == "POST":
+    if request.method != "POST":
         JsonResponse({"message": "Method not supported"})
         # Предполагаем, что данные могут передаваться в формате JSON или POST form-data
     try:
@@ -23,15 +23,12 @@ def login_by_telegram(request):
     if not id_telegram:
         return JsonResponse({"message": "Parameter 'telegram_id' is required."})
 
-    try:
-        telegram_id_int = int(id_telegram)
-    except ValueError:
-        return JsonResponse({"message": "Invalid telegram_id. It must be an integer."})
-    
-    try:
-        user = CustomUser.objects.get(id_telegram=telegram_id_int)
-    except CustomUser.DoesNotExist:
-        user = user_create_tg(username, id_telegram)
+    print(id_telegram)
+    if CustomUser.objects.filter(id_telegram=id_telegram).exists():
+        user = CustomUser.objects.filter(id_telegram=id_telegram).first()
+    else :
+        user_create_tg(username, id_telegram)
+        user = CustomUser.objects.filter(id_telegram=id_telegram).first()
 
     if user.status == "banned":
         return JsonResponse({"message": "User is banned"}, status=403)
@@ -159,8 +156,9 @@ def user_create_tg(username, id_telegram):
     try:
         # Проверка на уникальность username
         if CustomUser.objects.filter(id_telegram=id_telegram).exists():
-            return JsonResponse({'error': 'Username already exists'}, status=400)
+            return 0
 
+        print(id_telegram)
         # Создание пользователя
         user = CustomUser(username=username, id_telegram=id_telegram)
         status = "active"
@@ -168,13 +166,6 @@ def user_create_tg(username, id_telegram):
         user.save()  # Сохраняем пользователя, чтобы получить ID
         user_role = UserRole.objects.create(user=user, role="user")
         UserProfile.objects.create(user_role=user_role)
-        return JsonResponse({
-            'id_user': user.id_user,
-            'username': user.username,
-            'id_telegram': user.id_telegram,
-            'status': user.status,
-            'roles': user_role.role
-        }, status=201)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON data'}, status=400)
@@ -385,13 +376,13 @@ def get_favourite_rooms(request, id_user):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     
-    favorites = FavoriteRoom.objects.filter(id_user=id_user)
+    favorites = FavoriteRoom.objects.filter(user=id_user)
     data = []
     for fav in favorites:
         data.append({
             "favorite_id": fav.favorite_id,
-            "room_id": fav.room.id,
-            "id_user": fav.user.id,
+            "room_id": fav.room.id_room,
+            "id_user": fav.user.id_user,
         })
     return JsonResponse(data, safe=False)
 
