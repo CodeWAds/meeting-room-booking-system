@@ -82,11 +82,42 @@ def get_users(request):
             roles = UserRole.objects.filter(user=user)
             role_names = [role.role for role in roles]
             user_info = {
+                    "id_user": user.id_user,
                     "username": user.username,
                     "roles": role_names,    
             }
             user_data.append(user_info)
         return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_role(request, id_user):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"}, status=405)
+
+    try:
+        user = get_object_or_404(CustomUser, id_user=id_user)
+        roles = list(user.roles.values_list("role", flat=True))
+        for role in roles:
+            role_list = []
+            if role == "user":
+                user_profile = UserProfile.objects.filter(user_role__user=user).first()
+                data = {"role": role}
+                data['karma'] = user_profile.karma if user_profile else None
+            if role == "user":
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+                data = {"role": role}
+                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                data['location_id'] = location_id
+        data = {
+            'id_user': user.id_user,
+            'roles': role_list
+        }
+
+       
+
+        return JsonResponse(data, status=200)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -98,23 +129,23 @@ def get_user(request, id_user):
     try:
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
-
+        for role in roles:
+            role_list = []
+            data = {"role": role}
+            if role == "user":
+                user_profile = UserProfile.objects.filter(user_role__user=user).first()
+                data['karma'] = user_profile.karma if user_profile else None
+            if role == "manager" :
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                data['location_id'] = location_id
+            role_list.append(data)
         data = {
             'id_user': user.id_user,
             'username': user.username,
             'status': user.status,
-            'roles': roles
+            'roles': role_list
         }
-
-        if "user" in roles:
-            user_profile = UserProfile.objects.filter(user_role__user=user).first()
-            data['karma'] = user_profile.karma if user_profile else None
-
-        if "manager" in roles:
-            manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-            location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
-            data['location_id'] = location_id
-
         return JsonResponse(data, status=200)
 
     except Exception as e:
