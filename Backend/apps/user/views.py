@@ -94,17 +94,17 @@ def get_role(request, id_user):
     try:
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
+        role_list = []
         for role in roles:
-            role_list = []
+            data = {"role": role}
             if role == "user":
                 user_profile = UserProfile.objects.filter(user_role__user=user).first()
-                data = {"role": role}
                 data['karma'] = user_profile.karma if user_profile else None
-            if role == "user":
+            if role == "manager" :
                 manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-                data = {"role": role}
                 location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
                 data['location_id'] = location_id
+            role_list.append(data)
         data = {
             'id_user': user.id_user,
             'roles': role_list
@@ -125,8 +125,8 @@ def get_user(request, id_user):
     try:
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
+        role_list = []
         for role in roles:
-            role_list = []
             data = {"role": role}
             if role == "user":
                 user_profile = UserProfile.objects.filter(user_role__user=user).first()
