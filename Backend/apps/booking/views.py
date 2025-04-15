@@ -31,7 +31,25 @@ def generate_code(data):
     return code
     
 
-
+def verify_code(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not supported"})
+    data = json.loads(request.body)
+    """ Получение информации о конкретном бронировании """
+    booking = get_object_or_404(Booking, code=data["code"])
+    return JsonResponse({
+        "id_booking": booking.id_booking,
+        "user_id": booking.user.id_user,
+        "room_id": booking.room.id_room,
+        "room_name": booking.room.room_name,
+        "location_name": booking.room.id_location.name,
+        "capacity": booking.room.capacity,
+        "date": booking.date.isoformat(),
+        "review": booking.review,
+        "status": booking.status,
+        "time_slot": list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+        "verify code": booking.code
+    })
 
 def get_booking(request):
     """ Получение всех бронирований """
