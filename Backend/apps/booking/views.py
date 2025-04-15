@@ -13,7 +13,7 @@ import hashlib, random, datetime
 
 
 def booking_location(request, location_id):
-    """ Получение всех бронирований """
+    """ Получение всех бронирований в локации"""
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     rooms = Room.objects.filter(id_location = location_id)
@@ -214,106 +214,6 @@ def get_user_bookings(request, user_id):
     
     return JsonResponse({"UserBookings": final_list})
 
-
-def room_time_slot_stats(request, location_id, room_id):
-    if request.method != "GET":
-        return JsonResponse({"error": "Only GET method allowed"}, status=405)
-
-    # Проверяем существование комнаты
-    room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
-
-    # Получаем и валидируем период
-    period = request.GET.get('period', 'day').lower()
-    if period not in ['day', 'week', 'month', 'all']:
-        return JsonResponse({"error": "Invalid period. Use: day, week, month or all"}, status=400)
-
-    # Определяем временной диапазон
-    today = timezone.now().date()
-    start_date = None
-    
-    if period == 'day':
-        start_date = today
-    elif period == 'week':
-        start_date = today - timedelta(days=6)
-    elif period == 'month':
-        start_date = today - timedelta(days=29)
-
-    # Получаем все временные слоты для локации
-    time_slots = TimeSlot.objects.filter(id_location=location_id)
-
-    # Собираем статистику
-    stats = []
-    total_bookings = 0
-
-    for slot in time_slots:
-        # Для специальных слотов
-        if slot.slot_type == "special":
-            try:
-                special_date = slot.special_slot.date
-                # Проверяем попадает ли дата в период (если период не 'all')
-                if period != 'all' and (special_date < start_date or special_date > today):
-                    continue
-                    
-                # Считаем бронирования для этого слота и даты
-                count = Booking.objects.filter(
-                    room=room,
-                    slot=slot,
-                    date=special_date
-                ).count()
-                
-                stats.append({
-                    "slot_id": slot.id_time_slot,
-                    "time_range": f"{slot.time_begin.strftime('%H:%M')}-{slot.time_end.strftime('%H:%M')}",
-                    "slot_type": "special",
-                    "bookings_count": count,
-                    "date": special_date.strftime("%Y-%m-%d")
-                })
-                total_bookings += count
-                
-            except SpecialTimeSlot.DoesNotExist:
-                continue
-                
-        # Для регулярных слотов
-        else:
-            # Базовый запрос для регулярных слотов
-            bookings_query = Booking.objects.filter(
-                room=room,
-                slot=slot
-            )
-            
-            # Применяем фильтр по дате если период не 'all'
-            if period != 'all':
-                bookings_query = bookings_query.filter(
-                    date__gte=start_date,
-                    date__lte=today
-                )
-            
-            count = bookings_query.count()
-            
-            stats.append({
-                "slot_id": slot.id_time_slot,
-                "time_range": f"{slot.time_begin.strftime('%H:%M')}-{slot.time_end.strftime('%H:%M')}",
-                "slot_type": "regular",
-                "bookings_count": count,
-                "date": None
-            })
-            total_bookings += count
-
-    # Сортируем слоты по времени начала
-    stats.sort(key=lambda x: x["time_range"])
-
-    return JsonResponse({
-        "location_id": location_id,
-        "room_id": room_id,
-        "room_name": room.room_name,
-        "period": period,
-        "time_slot_stats": stats,
-        "total_bookings": total_bookings,
-        "period_range": {
-            "start": start_date.strftime("%Y-%m-%d") if period != 'all' else "All time",
-            "end": today.strftime("%Y-%m-%d") if period != 'all' else "All time"
-        }
-    })
 
 
 def get_upcoming_bookings_for_notifications(request):
