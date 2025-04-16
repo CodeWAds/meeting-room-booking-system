@@ -11,6 +11,87 @@ from apps.user.models import FavoriteRoom
 import hashlib, random, datetime
 
 
+def booking_extension(request, booking_id):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    """ Получение информации о конкретном бронировании """
+    booking = get_object_or_404(Booking, id_booking=booking_id)
+    time_slot = list(booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type"))
+    last_time_slot = time_slot[-1]['time_end']
+
+
+
+    time_slots = TimeSlot.objects.filter(id_location=booking.room.id_location)
+    # Получаем идентификаторы временных слотов
+    time_slot_ids = time_slots.values_list('id_time_slot', flat=True)
+    # Получаем специальные временные слоты, используя идентификаторы
+    time_slots_special = SpecialTimeSlot.objects.filter(id_time_slot__in=time_slot_ids, date=booking.date)
+    time_slot_list = []
+    if time_slots_special:
+        for time_slot in time_slots_special:
+            time_slot_reg = TimeSlot.objects.filter(id_time_slot=time_slot.id_time_slot.id_time_slot).first()
+            slot_data = {
+            "id_time_slot": time_slot_reg.id_time_slot,
+            "time_begin": str(time_slot_reg.time_begin),
+            "time_end": str(time_slot_reg.time_end),
+            "slot_type": time_slot_reg.slot_type,
+            "special_date": time_slot.date}
+        time_slot_list.append(slot_data)
+    
+    else:
+        for time_slot in time_slots:
+            if time_slot.slot_type == "special":
+                continue
+            slot_data = {
+                "id_time_slot": time_slot.id_time_slot,
+                "time_begin": str(time_slot.time_begin),
+                "time_end": str(time_slot.time_end),
+                "slot_type": time_slot.slot_type
+            }
+            time_slot_list.append(slot_data)
+
+    time_slot_list = sorted(time_slot_list, key=lambda x: x["time_begin"])
+    next_time_slot = None
+    for slot in time_slot_list:
+        if  datetime.datetime.strptime(slot["time_begin"], "%H:%M:%S").time() >  last_time_slot:
+            next_time_slot = slot
+            break
+    if next_time_slot is None:
+        return JsonResponse({"message": "it's last time_slot"})
+    if not Booking.objects.filter(slot__in = [next_time_slot["id_time_slot"]], date = booking.date ).exists():
+        booking.slot.add(next_time_slot["id_time_slot"])
+        return JsonResponse({"message": "success"})
+    else:
+        return JsonResponse({"message": "no available slot"})
+            
+
+def booking_location(request, location_id):
+    """ Получение всех бронирований в локации"""
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    rooms = Room.objects.filter(id_location = location_id)
+    if not rooms.exists():
+        return JsonResponse({"message": "Location not found"}, status=404)
+
+    bookings = Booking.objects.filter(room__in = rooms)  # Получаем объекты, 
+    final_list = []
+    for currect_booking in bookings:
+        currect_booking = {
+            "id_booking": currect_booking.id_booking,
+            "room_name": currect_booking.room.room_name,
+            "location_name": currect_booking.room.id_location.name,
+            "capacity": currect_booking.room.capacity,
+            "user": currect_booking.user.id_user,
+            "room": currect_booking.room.id_room,
+            "date": currect_booking.date,
+            "review": currect_booking.review,
+            "status": currect_booking.status,
+            "time_slot": list(currect_booking.slot.values("id_time_slot", "time_begin", "time_end", "slot_type")),
+            "verify code": currect_booking.code
+        }
+        final_list.append(currect_booking)
+    return JsonResponse({"Booking": final_list})
+
 def generate_code(data):
     data = {
     "user_id": data["user_id"],
@@ -186,106 +267,6 @@ def get_user_bookings(request, user_id):
     
     return JsonResponse({"UserBookings": final_list})
 
-
-def room_time_slot_stats(request, location_id, room_id):
-    if request.method != "GET":
-        return JsonResponse({"error": "Only GET method allowed"}, status=405)
-
-    # Проверяем существование комнаты
-    room = get_object_or_404(Room, id_room=room_id, id_location=location_id)
-
-    # Получаем и валидируем период
-    period = request.GET.get('period', 'day').lower()
-    if period not in ['day', 'week', 'month', 'all']:
-        return JsonResponse({"error": "Invalid period. Use: day, week, month or all"}, status=400)
-
-    # Определяем временной диапазон
-    today = timezone.now().date()
-    start_date = None
-    
-    if period == 'day':
-        start_date = today
-    elif period == 'week':
-        start_date = today - timedelta(days=6)
-    elif period == 'month':
-        start_date = today - timedelta(days=29)
-
-    # Получаем все временные слоты для локации
-    time_slots = TimeSlot.objects.filter(id_location=location_id)
-
-    # Собираем статистику
-    stats = []
-    total_bookings = 0
-
-    for slot in time_slots:
-        # Для специальных слотов
-        if slot.slot_type == "special":
-            try:
-                special_date = slot.special_slot.date
-                # Проверяем попадает ли дата в период (если период не 'all')
-                if period != 'all' and (special_date < start_date or special_date > today):
-                    continue
-                    
-                # Считаем бронирования для этого слота и даты
-                count = Booking.objects.filter(
-                    room=room,
-                    slot=slot,
-                    date=special_date
-                ).count()
-                
-                stats.append({
-                    "slot_id": slot.id_time_slot,
-                    "time_range": f"{slot.time_begin.strftime('%H:%M')}-{slot.time_end.strftime('%H:%M')}",
-                    "slot_type": "special",
-                    "bookings_count": count,
-                    "date": special_date.strftime("%Y-%m-%d")
-                })
-                total_bookings += count
-                
-            except SpecialTimeSlot.DoesNotExist:
-                continue
-                
-        # Для регулярных слотов
-        else:
-            # Базовый запрос для регулярных слотов
-            bookings_query = Booking.objects.filter(
-                room=room,
-                slot=slot
-            )
-            
-            # Применяем фильтр по дате если период не 'all'
-            if period != 'all':
-                bookings_query = bookings_query.filter(
-                    date__gte=start_date,
-                    date__lte=today
-                )
-            
-            count = bookings_query.count()
-            
-            stats.append({
-                "slot_id": slot.id_time_slot,
-                "time_range": f"{slot.time_begin.strftime('%H:%M')}-{slot.time_end.strftime('%H:%M')}",
-                "slot_type": "regular",
-                "bookings_count": count,
-                "date": None
-            })
-            total_bookings += count
-
-    # Сортируем слоты по времени начала
-    stats.sort(key=lambda x: x["time_range"])
-
-    return JsonResponse({
-        "location_id": location_id,
-        "room_id": room_id,
-        "room_name": room.room_name,
-        "period": period,
-        "time_slot_stats": stats,
-        "total_bookings": total_bookings,
-        "period_range": {
-            "start": start_date.strftime("%Y-%m-%d") if period != 'all' else "All time",
-            "end": today.strftime("%Y-%m-%d") if period != 'all' else "All time"
-        }
-    })
 
 
 def get_upcoming_bookings_for_notifications(request):

@@ -18,6 +18,6 @@ urlpatterns = [
     #favourite_rooms
     path("<int:id_user>/favourite_rooms/", views.get_favourite_rooms, name="favourite-rooms"),  
     path("<int:id_user>/favourite_rooms/add_room/", views.add_favourite_room, name="add-favourite-room"),
-    path("<int:id_user>/favourite_rooms/<int:favorite_id>/", views.favourite_room_detail, name="favourite-room-detail"), 
-    path('<int:id_user>/favourite_rooms/<int:favorite_id>/delete/', views.delete_favourite_room, name='delete-favourite-room')
+    path("<int:id_user>/favourite_rooms/<int:room_id>/", views.favourite_room_detail, name="favourite-room-detail"), 
+    path('<int:id_user>/favourite_rooms/<int:room_id>/delete/', views.delete_favourite_room, name='delete-favourite-room')
 ]
