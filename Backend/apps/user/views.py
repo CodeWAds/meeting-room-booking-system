@@ -39,7 +39,7 @@ def login_by_telegram(request):
     
 
 def user_login(request):
-    if request.method == "POST":
+    if request.method != "POST":
         JsonResponse({"message": "Method not supported"})
     try:
         data = json.loads(request.body)
@@ -55,7 +55,7 @@ def user_login(request):
 
     if user is not None:
         login(request, user)
-        return JsonResponse({"message": "Login successful", "username": user.username})
+        return JsonResponse({"message": "Login successful", "user_id": user.id_user,"username": user.username})
     else:
         return JsonResponse({"message": "Invalid login credentials"}, status=400)
 
