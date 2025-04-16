@@ -7,47 +7,82 @@ import Rooms from "../components/Rooms";
 import Modal from "../components/Modal";
 import styles from "../styles/Home.module.css";
 import { useStore } from "../store/app-store";
+import { postData } from "../api/api-utils";
+import { endpoints } from "../api/config";
 
+interface TimeSlot {
+  id: number;
+  timeStart: string;
+  timeEnd: string;
+}
 
 const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [bookingDetails, setBookingDetails] = useState<{
+    roomName?: string;
+    date?: string;
+    timeStart?: string;
+    timeEnd?: string;
+    roomId?: number;
+    slot?: number[];
+  }>({});
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[] | undefined>(undefined);
+  const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
   const store = useStore();
 
-  useEffect(() => {
-    const initializeTelegram = () => {
-      if (typeof window !== "undefined") {
-        try {
-          TelegramWebApps.ready();
-          const data = TelegramWebApps.initDataUnsafe.user;
-          if (data) {
-            store.setUserData(data);
-          } else {
-            console.warn("Данные пользователя недоступны. Запустите приложение в Telegram Mini App.");
-            store.setUserData(null);
-          }
-        } catch (error) {
-          console.error("Ошибка инициализации Telegram:", error);
-          store.setUserData(null);
-        }
-      }
-    };
-    initializeTelegram();
-  }, []);
-
-  const handleBookClick = (): void => {
+  const handleBookClick = (
+    roomName: string,
+    roomId: number,
+    date: string,
+    timeStart: string,
+    timeEnd: string
+  ): void => {
+    const slot = calculateSlots();
+    setBookingDetails({ roomName, roomId, date, timeStart, timeEnd, slot });
     setIsModalOpen(true);
+  };
+
+  const calculateSlots = (): number[] => {
+    if (!selectedTimeSlots || selectedTimeSlots.length === 0) {
+      console.warn("Слоты не выбраны, возвращаем дефолтное значение");
+      return [1, 2];
+    }
+
+    return selectedTimeSlots.map((slot) => slot.id);
   };
 
   const handleCloseModal = (): void => {
     setIsModalOpen(false);
   };
 
+  const handleFilterChange = (date: string, timeSlots: TimeSlot[], location: string) => {
+    setSelectedDate(date);
+    setSelectedTimeSlots(timeSlots);
+    setSelectedLocation(location);
+  };
+
   return (
     <div className={styles.container}>
-      <Navbar title="Rooms - пространство для идей и решений"/>
-      <Filters />
-      <Rooms onBookClick={handleBookClick} />
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
+      <Navbar title="Rooms - пространство для идей и решений" />
+      <Filters onFilterChange={handleFilterChange} />
+      <Rooms
+        onBookClick={handleBookClick}
+        selectedDate={selectedDate}
+        selectedTimeSlots={selectedTimeSlots}
+        selectedLocation={selectedLocation}
+      />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        roomName={bookingDetails.roomName}
+        roomId={bookingDetails.roomId}
+        date={bookingDetails.date}
+        timeStart={bookingDetails.timeStart}
+        timeEnd={bookingDetails.timeEnd}
+        userId={store.user?.id}
+        slot={bookingDetails.slot}
+      />
     </div>
   );
 };

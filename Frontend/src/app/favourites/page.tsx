@@ -1,92 +1,141 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import styles from '../../styles/fav.module.css';
-import Modal from './ModalFollow';
+import ModalFollow from './ModalFollow';
 import Navbar from '../../components/Navbar';
+import { getData, deleteData } from '../../api/api-utils';
+import { endpoints } from '../../api/config';
+import { useStore } from '../../store/app-store';
 
-interface Room {
+interface Equipment {
   name: string;
-  capacity: string;
-  location: string;
-  icons: string[];
+  description: string;
 }
 
-const Favourites = () => {
-  const [favourites, setFavourites] = useState<Room[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedFavourites = localStorage.getItem('favourites');
-      return savedFavourites ? JSON.parse(savedFavourites) : [];
-    }
-    return [];
-  });
+interface Room {
+  favorite_id: number;
+  room_id: number;
+  id_user: number;
+  room_name: string;
+  capacity: number;
+  location?: string;
+  id_equipment: Equipment[];
+}
+
+const Favourites: React.FC = () => {
+  const [favourites, setFavourites] = useState<Room[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null); // Для хранения выбранной комнаты
+  const [isLoading, setIsLoading] = useState(true);
+  const store = useStore();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('favourites', JSON.stringify(favourites));
-    }
-  }, [favourites]);
+    if (!store.id_user) return;
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      if (typeof window !== 'undefined') {
-        const savedFavourites = localStorage.getItem('favourites');
-        setFavourites(savedFavourites ? JSON.parse(savedFavourites) : []);
+    const fetchFavourites = async () => {
+      try {
+        const response = await getData(endpoints.get_favourite_rooms(store.id_user));
+        if (response instanceof Error) throw response;
+
+        const adaptedData: Room[] = (response || []).map((item: any) => ({
+          favorite_id: item.favorite_id,
+          room_id: item.room_id,
+          id_user: item.id_user,
+          room_name: item.room_name,
+          capacity: item.capacity,
+          location: item.location || 'Не указана',
+          id_equipment: item.id_equipment || [],
+        }));
+
+        setFavourites(adaptedData);
+      } catch (error) {
+        console.error('Ошибка при загрузке избранных комнат:', error);
+        setFavourites([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    fetchFavourites();
+  }, [store.id_user]);
 
-  const toggleFavourite = (room: Room) => {
-    if (favourites.some((fav) => fav.name === room.name && fav.location === room.location)) {
-      const updatedFavourites = favourites.filter(
-        (fav) => !(fav.name === room.name && fav.location === room.location)
+  const toggleFavourite = async (room: Room) => {
+    try {
+      const response = await deleteData(
+        endpoints.delete_favourite(store.id_user, room.room_id)
       );
-      setFavourites(updatedFavourites);
+      if (response instanceof Error) throw response;
+
+      setFavourites((prev) =>
+        prev.filter((fav) => fav.room_id !== room.room_id)
+      );
+    } catch (error) {
+      console.error('Ошибка при удалении из избранного:', error);
     }
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleBookClick = () => {
+  const handleBookClick = (room: Room) => {
+    setSelectedRoom(room);
     setIsModalOpen(true);
-    console.log("Book button clicked");
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setSelectedRoom(null);
+  };
+
+  const equipmentIcons: { [key: string]: string } = {
+    'Проводной интернет': '/svg/internet.svg',
+    'Wi-Fi': '/svg/wifi.svg',
+    'Проектор/Интерактивная доска': '/svg/proektor.svg',
+    'СК/Ноутбук': '/svg/tv.svg',
   };
 
   return (
     <div className={styles.rooms}>
       <Navbar title="Избранные переговорные" />
-      {favourites.length === 0 ? (
+      {isLoading ? (
+        <p style={{ color: '#fff' }}>Загрузка избранных комнат...</p>
+      ) : favourites.length === 0 ? (
         <p style={{ color: '#fff' }}>У вас пока нет избранных комнат.</p>
       ) : (
         <div className={styles.roomList}>
-          {favourites.map((room, index) => (
-            <div key={index} className={styles.roomCard}>
-              <h4>{room.name}</h4>
-              <p>Вместимость: {room.capacity}</p>
+          {favourites.map((room) => (
+            <div key={room.favorite_id} className={styles.roomCard}>
+              <h4>{room.room_name}</h4>
+              <p>Вместимость: {room.capacity} чел.</p>
               <p>Локация: {room.location}</p>
               <div className={styles.roomIcons}>
-                {room.icons.map((icon, i) => (
-                  <img key={i} src={icon} alt={`icon-${i}`} className={styles.roomIcon} />
+                {room.id_equipment.map((equip, i) => (
+                  <img
+                    key={i}
+                    src={equipmentIcons[equip.name] || '/svg/not-found.svg'}
+                    alt={equip.name}
+                    title={equip.description}
+                    className={styles.roomIcon}
+                  />
                 ))}
               </div>
-              <button className={styles.bookBtn} onClick={handleBookClick}>
+              <button className={styles.bookBtn} onClick={() => handleBookClick(room)}>
                 Забронировать
               </button>
-              <span className={styles.favorite} onClick={() => toggleFavourite(room)}>
+              <span
+                className={styles.favorite}
+                onClick={() => toggleFavourite(room)}
+              >
                 <img src="/svg/liked.svg" alt="liked" />
               </span>
             </div>
           ))}
         </div>
       )}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
+      <ModalFollow
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        roomId={selectedRoom?.room_id}
+        roomName={selectedRoom?.room_name}
+      />
     </div>
   );
 };
