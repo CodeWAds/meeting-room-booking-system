@@ -381,6 +381,8 @@ def get_favourite_rooms(request, id_user):
         data.append({
             "favorite_id": fav.favorite_id,
             "room_id": fav.room.id_room,
+            "location_id": fav.room.id_location.id_location,
+            "location_name": fav.room.id_location.name,
             "id_user": fav.user.id_user,
             "room_name": fav.room.room_name, 
             "capacity": fav.room.capacity, 
@@ -394,4 +396,4 @@ def delete_favourite_room(request,id_user, room_id):
     
     favorite = get_object_or_404(FavoriteRoom, room = room_id, user = id_user)
     favorite.delete()
-    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite.room})
+    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite.room.id_room})

@@ -296,7 +296,7 @@ def get_available_rooms(request):
     
 
     try:
-        date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
