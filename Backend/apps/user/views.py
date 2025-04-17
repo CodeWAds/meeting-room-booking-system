@@ -64,6 +64,59 @@ def user_logout(request):
     logout(request)
     return JsonResponse({"message": "Logout successful"})
 
+
+def get_clients(request):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        users = CustomUser.objects.all()
+        user_data = []
+        for user in users:
+            roles = UserRole.objects.filter(user=user)
+            role_names = [role.role for role in roles]
+            if len(roles) == 1 and role_names[0] == "user":
+                user_info = {
+                        "id_user": user.id_user,
+                        "username": user.username,
+                        "status": user.status,    
+                }
+                user_data.append(user_info)
+        return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def get_stuff(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        data = json.loads(request.body)
+        id = data.get('id_user')
+        user = get_object_or_404(CustomUser, id_user=id)
+        roles = UserRole.objects.filter(user=user)
+        role_names = [role.role for role in roles]
+        super_admin = False
+        print(role_names)
+        if "superadmin" in role_names:
+            super_admin = True
+        if (not "admin" in role_names) and (not super_admin):
+            return JsonResponse({"message": "you don't have priviliges for this"})
+        users = CustomUser.objects.all()
+        user_data = []
+        for user in users:
+            roles = UserRole.objects.filter(user=user)
+            role_names = [role.role for role in roles]
+            if  (not "admin" in role_names or super_admin) and  (not "user" in role_names):
+                user_info = {
+                        "id_user": user.id_user,
+                        "username": user.username,
+                        "roles": role_names,
+                        "status": user.status,    
+                }
+                user_data.append(user_info)
+        return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 def get_users(request):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
