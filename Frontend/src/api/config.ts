@@ -1,3 +1,4 @@
+import { verify } from "crypto";
 import { get } from "http";
 
 export const BASE_URL = 'https://sivann.ru';
@@ -17,4 +18,10 @@ export const endpoints = {
   get_favourite_rooms: (id_user) => `${BASE_URL}/user/${id_user}/favourite_rooms/`,
   get_all_booking: `${BASE_URL}/booking/`,
   get_location_booking: (id_location) => `${BASE_URL}/booking/location/${id_location}/`,
+  verify_booking: `${BASE_URL}/booking/verify_code/`,
+  apply_verify_code: (booking_id)=>`${BASE_URL}/booking/${booking_id}/update`,
+  get_roles: (id_user) => `${BASE_URL}/user/${id_user}/get_roles/`,
+  add_room: (id_location) => `${BASE_URL}/location/${id_location}/rooms/create_room/`,
+  delete_room: (id_location, id_room) => `${BASE_URL}/location/${id_location}/rooms/${id_room}/delete/`,
+  
 };

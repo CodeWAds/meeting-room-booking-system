@@ -54,3 +54,19 @@ export const deleteData = async (url: string, payload?: any) => {
     return { error: error.message || 'Неизвестная ошибка' };
   }
 };
+export const updateData = async (url, payload) => {
+  try {
+      const response = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      return data;
+  } catch (error) {
+      return error;
+  }
+};

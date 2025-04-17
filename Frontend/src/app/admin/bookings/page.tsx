@@ -114,9 +114,6 @@ export default function BookingsPage() {
                   <td>{booking.date}</td>
                   <td>{getTimeRange(booking.time_slot)}</td>
                   <td className={styles.actionsCell}>
-                    <button className={styles.editBtn}>
-                      <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
-                    </button>
                     <button className={styles.deleteBtn}>
                       <img src="/svg/delete.svg" alt="Delete" width={16} height={16} />
                     </button>
