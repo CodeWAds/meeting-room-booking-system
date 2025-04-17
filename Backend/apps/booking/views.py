@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from .models import Booking, TimeSlot, Room
 from apps.location.models import Location, TimeSlot, SpecialTimeSlot
-from apps.user.models import FavoriteRoom
+from apps.user.models import FavoriteRoom, UserProfile
 import hashlib, random, datetime
 
 
@@ -117,10 +117,15 @@ def verify_code(request):
         return JsonResponse({"message": "Method not supported"})
     data = json.loads(request.body)
     """ Получение информации о конкретном бронировании """
-    booking = get_object_or_404(Booking, code=data["code"])
+    #get_object_or_404(Booking, code=data["code"])
+    booking = Booking.objects.filter(code = data["code"]).first()
+    user = booking.user
+    user_profile = UserProfile.objects.filter(user_role__user=user).first()
+    karma = user_profile.karma if user_profile else None
     return JsonResponse({
         "id_booking": booking.id_booking,
         "user_id": booking.user.id_user,
+        "karma": karma,
         "room_id": booking.room.id_room,
         "room_name": booking.room.room_name,
         "location_name": booking.room.id_location.name,
