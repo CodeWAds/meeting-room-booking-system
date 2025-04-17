@@ -16,7 +16,7 @@ class Booking(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="bookings")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="bookings")
     date = models.DateField()
-    review = models.PositiveSmallIntegerField(null=True, blank=True)  # Оценка может быть необязательной
+    review = models.IntegerField(null=True, blank=True)  # Оценка может быть необязательной
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     slot = models.ManyToManyField(TimeSlot) 
     code = models.IntegerField()

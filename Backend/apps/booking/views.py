@@ -227,6 +227,16 @@ def update_booking(request, booking_id):
     booking = get_object_or_404(Booking, id_booking=booking_id)
     data = json.loads(request.body)
     booking.date = data.get("date", booking.date)
+    review = data.get("review")
+    if review is not None:  
+        izm = review - booking.review
+    else:
+        izm = 0
+    user_profile = UserProfile.objects.filter(user_role__user=booking.user).first()
+    user_profile.karma = user_profile.karma + izm
+    if  user_profile.karma > 100:
+        user_profile.karma = 100
+    user_profile.save()
     booking.review = data.get("review", booking.review)
     booking.status = data.get("status", booking.status)
     slot_ids = data.get("slot")
