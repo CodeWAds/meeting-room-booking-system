@@ -1,15 +1,27 @@
+
 "use client";
 import React, { useState } from "react";
 import styles from "../../../styles/Admin.module.css";
 import DeleteConfirmationModal from "../../../components/DelModal";
 
+import EmployeeModal from "../../../components/StaffModal";
+
+interface Employee {
+  id: number;
+  name: string;
+  username: string;
+  password?: string;
+}
+
 export default function StaffPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false); 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); 
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  const staff = [
+  const [staff, setStaff] = useState<Employee[]>([
+
     { id: 1, name: "Анна", username: "anna_smirnova" },
     { id: 2, name: "Дмитрий", username: "dmitry_k" },
     { id: 3, name: "Елена", username: "elena_v" },
@@ -20,41 +32,45 @@ export default function StaffPage() {
     { id: 8, name: "Андрей", username: "andrey_s" },
     { id: 9, name: "Екатерина", username: "ekaterina_l" },
     { id: 10, name: "Михаил", username: "mikhail_v" },
-  ];
+
+  ]);
+
 
   const filteredStaff = staff.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
 
-  const [newEmployee, setNewEmployee] = useState({ name: "", username: "" });
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewEmployee({ ...newEmployee, [name]: value });
-  };
-
-  const handleAddEmployee = () => {
-    if (newEmployee.name && newEmployee.username) {
-      console.log("Новый сотрудник:", newEmployee);
-
-      setNewEmployee({ name: "", username: "" });
-      setIsModalOpen(false);
+  const handleAddOrUpdateEmployee = (employee: Employee) => {
+    if (editingEmployee) {
+      setStaff((prev) =>
+        prev.map((emp) => (emp.id === editingEmployee.id ? { ...employee, id: emp.id } : emp))
+      );
     } else {
-      alert("Пожалуйста, заполните все поля.");
+      setStaff((prev) => [
+        ...prev,
+        { ...employee, id: prev.length ? Math.max(...prev.map((emp) => emp.id)) + 1 : 1 },
+      ]);
     }
+    setEditingEmployee(null);
+    setIsModalOpen(false);
   };
 
-  
-  const handleDeleteEmployee = (employeeId) => {
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteEmployee = (employeeId: number) => {
     setSelectedEmployeeId(employeeId);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedEmployeeId) {
-      console.log(`Удаление сотрудника с ID ${selectedEmployeeId}`);
-   
+
+      setStaff((prev) => prev.filter((emp) => emp.id !== selectedEmployeeId));
+
       setIsDeleteModalOpen(false);
       setSelectedEmployeeId(null);
     }
@@ -62,54 +78,16 @@ export default function StaffPage() {
 
   return (
     <main className={styles.content}>
-     
-      {isModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>Добавление сотрудника</h3>
-            <form>
-              <div className={styles.formGroup}>
-                <label>Имя:</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={newEmployee.name}
-                  onChange={handleInputChange}
-                  placeholder="Введите имя"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Логин:</label>
-                <input
-                  type="text"
-                  name="username"
-                  value={newEmployee.username}
-                  onChange={handleInputChange}
-                  placeholder="Введите логин"
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={handleAddEmployee}
-                  className={styles.addButtonModal}
-                >
-                  Добавить
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className={styles.cancelButton}
-                >
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <EmployeeModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingEmployee(null);
+        }}
+        onSave={handleAddOrUpdateEmployee}
+        employeeToEdit={editingEmployee}
+      />
 
- 
       {isDeleteModalOpen && (
         <DeleteConfirmationModal
           isOpen={isDeleteModalOpen}
@@ -118,7 +96,6 @@ export default function StaffPage() {
         />
       )}
 
-      
       <div className={styles.contentHeader}>
         <h2 className={styles.pageTitle}>Сотрудники</h2>
         <div className={styles.actions}>
@@ -133,6 +110,7 @@ export default function StaffPage() {
             Добавить
           </button>
         </div>
+
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
@@ -151,7 +129,12 @@ export default function StaffPage() {
                 <td>{employee.name}</td>
                 <td>{employee.username}</td>
                 <td className={styles.actionsCell}>
-                  <button className={styles.editBtn}>
+
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => handleEditEmployee(employee)}
+                  >
+
                     <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
                   </button>
                   <button

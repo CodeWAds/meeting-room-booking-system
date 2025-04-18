@@ -18,7 +18,8 @@ urlpatterns = [
     path('get_available_rooms/', views.get_available_rooms, name='get_available_rooms'),
 
     #time_slot
-    path("<int:location_id>/time_slot/", views.get_time_slot, name="get_time_slots"),  
+    path("<int:location_id>/time_slot/", views.get_time_slot_availability, name="get_time_slots"), 
+    path("<int:location_id>/time_slot_all/", views.get_time_slot, name="get_time_slots"), 
     path("<int:location_id>/time_slot/create_slot/", views.create_time_slot, name="create_time_slot"),
     path("<int:location_id>/time_slot/<int:slot_id>/", views.time_slot_detail, name="time_slot_detail"), 
     path('<int:location_id>/time_slot/<int:slot_id>/update/', views.update_time_slot, name='update_time_slot'),

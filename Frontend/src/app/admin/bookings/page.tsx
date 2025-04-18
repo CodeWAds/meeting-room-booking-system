@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+
 import styles from '../../../styles/Admin.module.css';
 import { getData } from '../../../api/api-utils';
 import { endpoints } from '../../../api/config';
@@ -59,12 +60,12 @@ export default function BookingsPage() {
     fetchBookings();
   }, []);
 
-  // Фильтрация бронирований по поисковому запросу
+
   const filteredBookings = bookings.filter((booking) =>
     booking.room_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Функция для получения времени начала и конца из массива time_slot
+  
   const getTimeRange = (timeSlots: TimeSlot[]): string => {
     if (!timeSlots || timeSlots.length === 0) {
       return 'Не указано';
@@ -75,6 +76,7 @@ export default function BookingsPage() {
   };
 
   return (
+
     <main className={styles.content}>
       <div className={styles.contentHeader}>
         <h2 className={styles.pageTitle}>Брони</h2>
@@ -85,7 +87,7 @@ export default function BookingsPage() {
             className={styles.searchInput}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button className={styles.addButton}>Добавить</button>
+
         </div>
       </div>
       <div className={styles.tableWrapper}>
