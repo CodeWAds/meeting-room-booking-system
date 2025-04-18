@@ -130,7 +130,7 @@ def get_users(request):
         for user in users:
             # Получаем информацию о ролях
             roles = UserRole.objects.filter(user=user)
-            role_names = [role.role for role in roles]
+            role_names = list({role.role for role in roles})
             user_info = {
                     "id_user": user.id_user,
                     "username": user.username,
