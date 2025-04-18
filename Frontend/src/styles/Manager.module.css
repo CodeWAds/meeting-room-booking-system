@@ -338,3 +338,54 @@
   justify-content: flex-start;
   align-items: center;
 }
+
+.reviewButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* Общий стиль для кнопок оценки */
+.reviewButtons button {
+  padding: 8px 16px;
+  border-radius: 50px;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+/* Кнопка "Плохо" (-5) */
+.badReviewButton {
+  background-color: #EF4444; /* Красный */
+}
+
+.badReviewButton:hover {
+  background-color: #DC2626;
+}
+
+/* Кнопка "Нейтрально" (0) */
+.neutralReviewButton {
+  background-color: #6B7280; /* Серый */
+}
+
+.neutralReviewButton:hover {
+  background-color: #5b616e;
+}
+
+/* Кнопка "Хорошо" (5) */
+.goodReviewButton {
+  background-color: #3DB009; /* Зелёный */
+}
+
+.goodReviewButton:hover {
+  background-color: #2d8704;
+}
+
+/* Стиль для выбранной кнопки */
+.selectedReviewButton {
+  border: 2px solid #ffffff; /* Белая рамка для выделения */
+  transform: scale(1.05); /* Лёгкое увеличение */
+}

@@ -23,5 +23,7 @@ export const endpoints = {
   get_roles: (id_user) => `${BASE_URL}/user/${id_user}/get_roles/`,
   add_room: (id_location) => `${BASE_URL}/location/${id_location}/rooms/create_room/`,
   delete_room: (id_location, id_room) => `${BASE_URL}/location/${id_location}/rooms/${id_room}/delete/`,
+  update_room: (id_location, id_room) => `${BASE_URL}/location/${id_location}/rooms/${id_room}/update/`,
+  update_booking: (id_booking) => `${BASE_URL}/booking/${id_booking}/update/`,
   
 };
