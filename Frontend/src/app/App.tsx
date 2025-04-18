@@ -45,20 +45,25 @@ const App: React.FC<AppProps> = ({ children }) => {
 
         initializeTelegram();
 
-        // createUser("Джеки Чан", 1111111).then((data) => {
-        //     if (data instanceof Error) {
-        //         console.error("Ошибка при создании пользователя:", data);
-        //     } else {
-        //         store.setUserID(data.id_user);
-        //     }
-        // });
-    }, []);
+        // Вызов createUser с реальными данными пользователя, если они есть
+        const user = store.user;
+        if (user && user.username && user.id) {
+            createUser(user.username, user.id).then((data) => {
+                if (data instanceof Error) {
+                    console.error("Ошибка при создании пользователя:", data);
+                } else {
+                    store.setUserID(data.id_user);
+                }
+            });
+        }
+    }, [store]);
 
     useEffect(() => {
         if (store.id_user !== null) {
             console.log("User ID обновлён:", store.id_user);
         }
     }, [store.id_user]);
+
     return (
         <>
             {children}
@@ -67,4 +72,3 @@ const App: React.FC<AppProps> = ({ children }) => {
 };
 
 export default App;
-

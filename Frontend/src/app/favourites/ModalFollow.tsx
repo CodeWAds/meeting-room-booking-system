@@ -35,19 +35,9 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
 
   // Получение временных слотов с бэкенда при выборе даты
   useEffect(() => {
-    // Проверяем наличие всех необходимых данных
     if (!locationId || !selectedDate || !store.id_user) {
       setAvailableSlots([]);
       setSelectedSlots([]);
-      if (!store.id_user) {
-        console.warn('store.id_user отсутствует, запрос на получение слотов не отправлен.');
-      }
-      if (!locationId) {
-        console.warn('locationId отсутствует, запрос на получение слотов не отправлен.');
-      }
-      if (!selectedDate) {
-        console.warn('selectedDate отсутствует, запрос на получение слотов не отправлен.');
-      }
       return;
     }
 
@@ -59,15 +49,8 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
           date: selectedDate,
         };
 
-        console.log('Отправляем запрос на получение слотов:', {
-          url: endpoints.time_slots(locationId),
-          data: requestData,
-        });
-
         const response = await postData(endpoints.time_slots(locationId), requestData);
         if (response instanceof Error) throw response;
-
-        console.log('Полученные данные о временных слотах:', response);
 
         if (response.time_slots && Array.isArray(response.time_slots)) {
           const slots: TimeSlot[] = response.time_slots
@@ -77,14 +60,7 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
                 slot.slot_type === 'special' &&
                 selectedDate &&
                 slot.special_date === selectedDate;
-              const willInclude = isRegular || isSpecialMatch;
-              console.log(`Слот ${slot.id_time_slot}:`, {
-                slot_type: slot.slot_type,
-                special_date: slot.special_date,
-                selectedDate,
-                willInclude,
-              });
-              return willInclude;
+              return isRegular || isSpecialMatch;
             })
             .map((slot: any) => ({
               id_time_slot: slot.id_time_slot,
@@ -94,28 +70,29 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
               special_date: slot.special_date,
             }));
 
-          console.log('Отфильтрованные слоты:', slots);
           setAvailableSlots(slots);
         } else {
           console.error('Временные слоты не в ожидаемом формате:', response);
           setAvailableSlots([]);
+          alert('Не удалось загрузить временные слоты. Попробуйте снова.');
         }
       } catch (error) {
         console.error('Ошибка при загрузке временных слотов:', error);
         setAvailableSlots([]);
+        alert('Ошибка при загрузке временных слотов. Попробуйте снова.');
       } finally {
         setIsLoadingSlots(false);
       }
     };
 
     fetchTimeSlots();
-  }, [locationId, selectedDate]); // Убираем store.id_user из зависимостей
+  }, [locationId, selectedDate, store.id_user]);
 
   // Проверяет, идут ли выбранные слоты подряд
   const isConsecutive = (slots: TimeSlot[]) => {
     if (slots.length < 2) return true;
     const indices = slots
-      .map(slot => availableSlots.findIndex(s => s.id_time_slot === slot.id_time_slot))
+      .map((slot) => availableSlots.findIndex((s) => s.id_time_slot === slot.id_time_slot))
       .sort((a, b) => a - b);
     return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
   };
@@ -123,8 +100,8 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
   const handleSlotToggle = (slot: TimeSlot) => {
     let newSelectedSlots = [...selectedSlots];
 
-    if (selectedSlots.some(s => s.id_time_slot === slot.id_time_slot)) {
-      newSelectedSlots = newSelectedSlots.filter(s => s.id_time_slot !== slot.id_time_slot);
+    if (selectedSlots.some((s) => s.id_time_slot === slot.id_time_slot)) {
+      newSelectedSlots = newSelectedSlots.filter((s) => s.id_time_slot !== slot.id_time_slot);
     } else {
       newSelectedSlots.push(slot);
     }
@@ -161,8 +138,10 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
   const calendarValue = selectedDate ? new Date(selectedDate) : null;
 
   const makeBooking = async () => {
-    if (!store.id_user || !roomId || !selectedDate || selectedSlots.length === 0) {
-      alert('Пожалуйста, выберите дату и хотя бы один временной слот для бронирования.');
+    if (!store.id_user || !roomId || !locationId || !selectedDate || selectedSlots.length === 0) {
+      alert(
+        'Необходимо авторизоваться, выбрать комнату, локацию, дату и хотя бы один временной слот.'
+      );
       return;
     }
 
@@ -171,9 +150,9 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
         user_id: store.id_user,
         room_id: roomId,
         date: selectedDate,
-        review: 5,
+        review: null,
         status: 'pending',
-        slot: selectedSlots.map(slot => slot.id_time_slot),
+        slot: selectedSlots.map((slot) => slot.id_time_slot),
       };
 
       const response = await postData(endpoints.create_booking, payload);
@@ -182,9 +161,11 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
         console.error('Ошибка при создании бронирования:', response);
         alert('Не удалось создать бронирование. Попробуйте снова.');
       } else {
-        console.log('Бронирование успешно создано:', response);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Бронирование успешно создано:', response);
+        }
         onClose();
-        router.push('/myBooking');
+        router.push('/myBookings');
       }
     } catch (error) {
       console.error('Произошла ошибка:', error);
@@ -244,7 +225,7 @@ const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, 
                     <button
                       key={slot.id_time_slot}
                       className={`${styles.timeSlot} ${
-                        selectedSlots.some(s => s.id_time_slot === slot.id_time_slot)
+                        selectedSlots.some((s) => s.id_time_slot === slot.id_time_slot)
                           ? styles.active
                           : ''
                       }`}

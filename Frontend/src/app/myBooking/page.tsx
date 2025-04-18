@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../styles/Booking.module.css';
 import CompleteModal from './complete.module';
 import CancelModal from './cancel.module';
@@ -32,35 +32,28 @@ interface Booking {
 }
 
 interface Room {
-  id: number; // Добавляем id комнаты
+  id: number;
   name: string;
   location: string;
   icons: string[];
 }
 
-const availableTimeSlots: TimeSlot[] = [
-  { id_time_slot: 4, time_begin: '09:40:00', time_end: '10:10:00', slot_type: 'regular' },
-  { id_time_slot: 5, time_begin: '10:20:00', time_end: '10:50:00', slot_type: 'regular' },
-  { id_time_slot: 6, time_begin: '11:00:00', time_end: '11:30:00', slot_type: 'regular' },
-  { id_time_slot: 7, time_begin: '11:40:00', time_end: '12:10:00', slot_type: 'regular' },
-  { id_time_slot: 8, time_begin: '12:20:00', time_end: '12:50:00', slot_type: 'regular' },
-];
-
 const MyBookingsPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [favourites, setFavourites] = useState<Room[]>([]);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const store = useStore();
 
-  const menuRef = useRef<HTMLDivElement>(null);
-  const burgerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (!store.id_user) return;
+    if (!store.id_user) {
+      setIsLoading(false);
+      alert('Ошибка: пользователь не авторизован. Пожалуйста, войдите в систему.');
+      return;
+    }
 
     const fetchBookings = async () => {
       try {
@@ -84,11 +77,10 @@ const MyBookingsPage: React.FC = () => {
 
         setBookings(adaptedData);
 
-        // Формируем избранные комнаты на основе ответа с сервера
         const initialFavourites: Room[] = (response.UserBookings || [])
           .filter((b: any) => b.favorite)
           .map((b: any) => ({
-            id: b.room, // Сохраняем room_id
+            id: b.room,
             name: b.room_name,
             location: b.location_name,
             icons: b.equipment || [],
@@ -98,50 +90,40 @@ const MyBookingsPage: React.FC = () => {
       } catch (error) {
         console.error('Ошибка при загрузке бронирований:', error);
         setBookings([]);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    fetchBookings();
+
+    
   }, [store.id_user]);
 
   const toggleFavourite = async (booking: Booking) => {
     const room: Room = {
-      id: booking.room, // Используем room_id из booking
+      id: booking.room,
       name: booking.room_name!,
       location: booking.location!,
       icons: booking.equipment || [],
     };
 
-    const exists = favourites.some(
-      (f) => f.id === room.id
-    );
+    const exists = favourites.some((f) => f.id === room.id);
 
     try {
       if (exists) {
-        // Удаляем комнату из избранных на сервере
         const response = await deleteData(
           endpoints.delete_favourite(store.id_user, room.id)
         );
         if (response instanceof Error) throw response;
-
-        // Обновляем состояние на клиенте
-        setFavourites((prev) =>
-          prev.filter((f) => f.id !== room.id)
-        );
+        setFavourites((prev) => prev.filter((f) => f.id !== room.id));
       } else {
-        // Добавляем комнату в избранное на сервере
         const response = await postData(endpoints.add_to_favourite(store.id_user), {
           room_id: booking.room,
         });
         if (response instanceof Error) throw response;
-
-        // Обновляем состояние на клиенте
         setFavourites((prev) => [...prev, room]);
       }
     } catch (error) {
       console.error('Ошибка при добавлении/удалении из избранного:', error);
+      alert('Не удалось обновить избранное. Попробуйте снова.');
     }
   };
 
@@ -149,23 +131,37 @@ const MyBookingsPage: React.FC = () => {
     try {
       const response = await deleteData(endpoints.delete_booking(id));
       if (response instanceof Error) throw response;
-      setBookings(bookings.filter(b => b.id_booking !== id));
-      console.log('Бронирование успешно отменено:', response);
+      setBookings(bookings.filter((b) => b.id_booking !== id));
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Бронирование успешно отменено:', response);
+      }
     } catch (error) {
       console.error('Ошибка при отмене бронирования:', error);
+      alert('Не удалось отменить бронирование. Попробуйте снова.');
     } finally {
       setIsCancelModalOpen(false);
       setSelectedBookingId(null);
     }
   };
 
-  const completeBooking = (id: number) => {
-    setBookings(bookings.filter(b => b.id_booking !== id));
+  const completeBooking = async (id: number) => {
+    // try {
+    //   // Предполагаемый эндпоинт для завершения бронирования
+    //   const response = await postData(endpoints.complete_booking, { booking_id: id });
+    //   if (response instanceof Error) throw response;
+    //   setBookings(bookings.filter((b) => b.id_booking !== id));
+    //   if (process.env.NODE_ENV !== 'production') {
+    //     console.log('Бронирование успешно завершено:', response);
+    //   }
+    // } catch (error) {
+    //   console.error('Ошибка при завершении бронирования:', error);
+    //   alert('Не удалось завершить бронирование. Попробуйте снова.');
+    // }
   };
 
   const extendBooking = (id: number, newSlot: TimeSlot) => {
     setBookings(
-      bookings.map(b =>
+      bookings.map((b) =>
         b.id_booking === id
           ? {
               ...b,
@@ -203,7 +199,7 @@ const MyBookingsPage: React.FC = () => {
     return now > end;
   };
 
-  const activeBookings = bookings.filter(b => !isBookingFinished(b));
+  const activeBookings = bookings.filter((b) => !isBookingFinished(b));
 
   return (
     <div className={styles.rooms}>
@@ -214,7 +210,7 @@ const MyBookingsPage: React.FC = () => {
         <p className={styles.noBookings}>Бронирований нет</p>
       ) : (
         <div className={styles.roomList}>
-          {activeBookings.map(booking => (
+          {activeBookings.map((booking) => (
             <div key={booking.id_booking} className={styles.roomCard}>
               <h4>{booking.room_name || `Комната №${booking.room}`}</h4>
               <p>Локация: {booking.location || '?'}</p>
@@ -268,7 +264,7 @@ const MyBookingsPage: React.FC = () => {
                 )}
               </div>
               <span onClick={() => toggleFavourite(booking)} className={styles.favorite}>
-                {favourites.some(f => f.id === booking.room) ? (
+                {favourites.some((f) => f.id === booking.room) ? (
                   <img src="/svg/liked.svg" alt="liked" />
                 ) : (
                   <img src="/svg/notliked.svg" alt="not liked" />

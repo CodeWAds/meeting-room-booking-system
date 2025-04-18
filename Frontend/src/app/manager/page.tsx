@@ -35,6 +35,7 @@ interface Booking {
   location_name: string;
   capacity: number;
   user: number;
+  karma?: number;
   date: string;
   review: number | null;
   status: string;
@@ -113,7 +114,8 @@ const Manager: React.FC = () => {
     const fetchUserRoles = async () => {
       setIsLoading(true);
       try {
-        const userRoles: UserRoles = await getData(endpoints.get_roles(15));
+        const userRoles: UserRoles = await getData(endpoints.get_roles(66));
+        console.log(userRoles)
         if (userRoles instanceof Error) throw userRoles;
 
         const hasAdminRole = userRoles.roles.some(role => role.role === 'admin');
@@ -365,6 +367,7 @@ const Manager: React.FC = () => {
       if (response instanceof Error) throw response;
 
       setBookingDetails(response);
+
       setIsModalOpen(true);
     } catch (error) {
       console.error('Ошибка при проверке бронирования:', error);
@@ -736,6 +739,7 @@ const Manager: React.FC = () => {
               <p><strong>Время:</strong> {bookingDetails.time_slot.length > 0
                 ? `${bookingDetails.time_slot[0].time_begin.slice(0, 5)} - ${bookingDetails.time_slot[bookingDetails.time_slot.length - 1].time_end.slice(0, 5)}`
                 : 'Время не указано'}</p>
+              <p><strong>Рейтинг пользователя:</strong> {bookingDetails.karma}</p>
               <p><strong>Статус:</strong> {bookingDetails.status === 'pending' ? 'Ожидает подтверждения' : 'Подтверждено'}</p>
               <p><strong>Код подтверждения:</strong> {bookingDetails['verify code']}</p>
             </div>
@@ -829,9 +833,8 @@ const Manager: React.FC = () => {
                       <button
                         key={slot.id_time_slot}
                         onClick={() => handleTimeSlotToggle(slot.id_time_slot)}
-                        className={`${styles.timeSlot} ${
-                          selectedTimeSlots.includes(slot.id_time_slot) ? styles.selectedTimeSlot : ''
-                        }`}
+                        className={`${styles.timeSlot} ${selectedTimeSlots.includes(slot.id_time_slot) ? styles.selectedTimeSlot : ''
+                          }`}
                       >
                         {slot.time_begin.slice(0, 5)} - {slot.time_end.slice(0, 5)}
                       </button>
@@ -900,9 +903,8 @@ const Manager: React.FC = () => {
                     <button
                       key={option.value}
                       onClick={() => handleReviewSelect(option.value)}
-                      className={`${option.className} ${
-                        selectedReview === option.value ? styles.selectedReviewButton : ''
-                      }`}
+                      className={`${option.className} ${selectedReview === option.value ? styles.selectedReviewButton : ''
+                        }`}
                     >
                       {option.label}
                     </button>
