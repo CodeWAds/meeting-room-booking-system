@@ -95,7 +95,7 @@ def get_stuff(request):
         roles = UserRole.objects.filter(user=user)
         role_names = [role.role for role in roles]
         super_admin = False
-        print(role_names)
+      
         if "superadmin" in role_names:
             super_admin = True
         if (not "admin" in role_names) and (not super_admin):
@@ -105,7 +105,7 @@ def get_stuff(request):
         for user in users:
             roles = UserRole.objects.filter(user=user)
             role_names = [role.role for role in roles]
-            if  (not "admin" in role_names or super_admin) and  (not "user" in role_names):
+            if  ((not "admin" in role_names and not "superadmin" in role_names) or super_admin) and  (not "user" in role_names):
                 user_info = {
                         "id_user": user.id_user,
                         "username": user.username,

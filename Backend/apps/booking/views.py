@@ -336,3 +336,5 @@ def get_upcoming_bookings_for_notifications(request):
     
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+    
