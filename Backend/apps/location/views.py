@@ -279,6 +279,98 @@ def delete_time_slot(request, location_id, slot_id):
     return JsonResponse({"message": "TimeSlot deleted"})
     
 
+def info_screen(request, id_location):
+    if request.method != "GET":
+        return JsonResponse({"message": "Invalid metod"})
+
+    data = json.loads(request.body)
+    date_str = datetime.datetime.now().date()
+    time_slot_ids = data.get('time_slot', [])
+    
+    if not all([id_location, date_str, time_slot_ids]):
+        return JsonResponse({"error": "Missing required parameters"}, status=400)
+                
+    
+
+    try:
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+    try:
+        time_slots = TimeSlot.objects.filter(id_time_slot__in=time_slot_ids)
+        if not time_slots.exists():
+            return JsonResponse({"error": "No valid time slots found"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Error retrieving time slots"}, status=500)
+
+    
+    # Проверяем существование локации
+    if not Location.objects.filter(id_location=id_location).exists():
+        return JsonResponse({"error": "Location not found"}, status=404)
+    
+    current_time = datetime.datetime.now().time()
+
+
+
+    time_slots = TimeSlot.objects.filter(id_location=id_location)
+    # Получаем идентификаторы временных слотов
+    time_slot_ids = time_slots.values_list('id_time_slot', flat=True)
+    # Получаем специальные временные слоты, используя идентификаторы
+    time_slots_special = SpecialTimeSlot.objects.filter(id_time_slot__in=time_slot_ids, date=date)
+    time_slot_list = []
+    if time_slots_special:
+        for time_slot in time_slots_special:
+            time_slot_reg = TimeSlot.objects.filter(id_time_slot=time_slot.id_time_slot.id_time_slot).first()
+            slot_data = {
+            "id_time_slot": time_slot_reg.id_time_slot,
+            "time_begin": str(time_slot_reg.time_begin),
+            "time_end": str(time_slot_reg.time_end),
+            "slot_type": time_slot_reg.slot_type,
+            "special_date": time_slot.date}
+        time_slot_list.append(slot_data)
+    
+    else:
+        for time_slot in time_slots:
+            if time_slot.slot_type == "special":
+                continue
+            slot_data = {
+                "id_time_slot": time_slot.id_time_slot,
+                "time_begin": str(time_slot.time_begin),
+                "time_end": str(time_slot.time_end),
+                "slot_type": time_slot.slot_type
+            }
+            time_slot_list.append(slot_data)
+
+    time_slot_list = sorted(time_slot_list, key=lambda x: x["time_begin"])
+    next_time_slot = None
+    for slot in time_slot_list:
+        if  datetime.datetime.strptime(slot["time_begin"], "%H:%M:%S").time() >  last_time_slot:
+            next_time_slot = slot
+            break
+    
+    available_rooms = Room.objects.filter(
+            id_location=id_location
+        ).exclude(Q(bookings__date=date) & Q(bookings__slot__in=time_slots) |
+    Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
+    room_list = [
+            {
+                "id": room.id_room,
+                "name": room.room_name,
+                "location": room.id_location.name,
+                "capacity": room.capacity,
+                "status": 1
+            }
+            for room in available_rooms
+        ]
+    
+
+    return JsonResponse({
+            "date": date_str,
+            "location_id": id_location,
+            "rooms": room_list
+        })
+
 
 def get_available_rooms(request):
     if request.method != "POST":
@@ -311,6 +403,8 @@ def get_available_rooms(request):
     # Проверяем существование локации
     if not Location.objects.filter(id_location=id_location).exists():
         return JsonResponse({"error": "Location not found"}, status=404)
+    
+    
     
     available_rooms = Room.objects.filter(
             id_location=id_location

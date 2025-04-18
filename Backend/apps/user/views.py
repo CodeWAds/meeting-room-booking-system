@@ -282,7 +282,7 @@ def user_update(request, id_user):
         password = data.get('password')
         status = data.get('status')
         location_id = data.get('location_id')
-        roles = data.get('roles', [])
+        roles = data.get('roles')
 
         # Находим пользователя по id_user
         user = get_object_or_404(CustomUser, id_user=id_user)
@@ -302,25 +302,39 @@ def user_update(request, id_user):
         user.save()  # Сохраняем изменения
 
         # Удаление старых ролей
-        UserRole.objects.filter(user=user).delete()
+        if roles is not None:
+            UserRole.objects.filter(user=user).delete()
+            # Привязка новых ролей
+            for role_name in roles:
+                user_role = UserRole.objects.create(user=user, role=role_name)
 
-        # Привязка новых ролей
-        for role_name in roles:
-            user_role = UserRole.objects.create(user=user, role=role_name)
+                if role_name == "user":
+                    UserProfile.objects.update_or_create(user_role=user_role)
 
-            if role_name == "user":
-                UserProfile.objects.update_or_create(user_role=user_role)
+                if role_name == "manager":
+                    location = get_object_or_404(Location, id_location=location_id)
+                    ManagerProfile.objects.update_or_create(user_role=user_role, defaults={'location_id': location})
 
-            if role_name == "manager":
-                location = get_object_or_404(Location, id_location=location_id)
-                ManagerProfile.objects.update_or_create(user_role=user_role, defaults={'location_id': location})
-
+        roles = list(user.roles.values_list("role", flat=True))
+        role_list = []
+        for role in roles:
+            data = {"role": role}
+            if role == "user":
+                user_profile = UserProfile.objects.filter(user_role__user=user).first()
+                data['karma'] = user_profile.karma if user_profile else None
+            if role == "manager" :
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                data['location_id'] = location_id
+            role_list.append(data)
+      
+        
         return JsonResponse({
             'id_user': user.id_user,
             'username': user.username,
             'login': user.login if user.login else None,
             'status': user.status,
-            'roles': roles
+            'roles': role_list
         }, status=200)
 
     except json.JSONDecodeError:
