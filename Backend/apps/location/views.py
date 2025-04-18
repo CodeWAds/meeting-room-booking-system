@@ -345,7 +345,7 @@ def info_screen(request, id_location):
     time_slot_list = sorted(time_slot_list, key=lambda x: x["time_begin"])
     next_time_slot = None
     for slot in time_slot_list:
-        if  datetime.datetime.strptime(slot["time_begin"], "%H:%M:%S").time() >  last_time_slot:
+        if  datetime.datetime.strptime(slot["time_begin"], "%H:%M:%S").time() >  current_time:
             next_time_slot = slot
             break
     
@@ -475,8 +475,8 @@ def create_availability_room(request, location_id, room_id):
             )
     
     try:
-        begin = datetime.fromisoformat(data['begin_datetime'])
-        end = datetime.fromisoformat(data['end_datetime'])
+        begin = datetime.datetime.fromisoformat(data['begin_datetime'])
+        end = datetime.datetime.fromisoformat(data['end_datetime'])
         
         if begin >= end:
             return JsonResponse(
@@ -641,8 +641,8 @@ def create_availability_loc(request, location_id):
             )
     
     try:
-        begin = datetime.fromisoformat(data['begin_datetime'])
-        end = datetime.fromisoformat(data['end_datetime'])
+        begin = datetime.datetime.fromisoformat(data['begin_datetime'])
+        end = datetime.datetime.fromisoformat(data['end_datetime'])
         
         if begin >= end:
             return JsonResponse(

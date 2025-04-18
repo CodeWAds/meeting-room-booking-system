@@ -149,15 +149,18 @@ def get_role(request, id_user):
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
         role_list = []
+        manager_process = 0
         for role in roles:
             data = {"role": role}
             if role == "user":
                 user_profile = UserProfile.objects.filter(user_role__user=user).first()
                 data['karma'] = user_profile.karma if user_profile else None
             if role == "manager" :
-                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user)
+                manager_profile = manager_profile[manager_process]
+                location_id = manager_profile.location_id.id_location
                 data['location_id'] = location_id
+                manager_process += 1       
             role_list.append(data)
         data = {
             'id_user': user.id_user,
@@ -178,15 +181,20 @@ def get_user(request, id_user):
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
         role_list = []
+        manager_process = 0
         for role in roles:
             data = {"role": role}
+
             if role == "user":
                 user_profile = UserProfile.objects.filter(user_role__user=user).first()
                 data['karma'] = user_profile.karma if user_profile else None
             if role == "manager" :
-                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user)
+                manager_profile = manager_profile[manager_process]
+                location_id = manager_profile.location_id.id_location
                 data['location_id'] = location_id
+                manager_process += 1       
+                
             role_list.append(data)
         data = {
             'id_user': user.id_user,
@@ -229,12 +237,12 @@ def user_create(request):
         login = data.get('login')
         password = data.get('password')
         status = data.get('status', "active")  # По умолчанию "active"
-        location_id = data.get('location_id')
+        location_id = data.get('location_id', [])
         roles = data.get('roles', [])  # roles передается как список строк, например ["user", "manager"]
 
         # Проверка на уникальность username
-        if CustomUser.objects.filter(username=username).exists():
-            return JsonResponse({'error': 'Username already exists'}, status=400)
+        if CustomUser.objects.filter(login=login).exists():
+            return JsonResponse({'error': 'login already exists'}, status=400)
 
         # Создание пользователя
         user = CustomUser(username=username, id_telegram=id_telegram, login=login)
@@ -245,15 +253,18 @@ def user_create(request):
 
         # Привязка ролей
         for role_name in roles:
-            user_role = UserRole.objects.create(user=user, role=role_name)
 
             if role_name == "user":
+                user_role = UserRole.objects.create(user=user, role=role_name)
                 UserProfile.objects.create(user_role=user_role)
 
-            if role_name == "manager":
-                # Получение экземпляра Location
-                location = get_object_or_404(Location, id_location=location_id)
-                ManagerProfile.objects.create(user_role=user_role, location_id=location)
+            elif role_name == "manager":
+                for location_id_obj in location_id:
+                    location = get_object_or_404(Location, id_location=location_id_obj)
+                    user_role = UserRole.objects.create(user=user, role=role_name)
+                    ManagerProfile.objects.create(user_role=user_role, location_id=location)
+            else:
+                user_role = UserRole.objects.create(user=user, role=role_name)
 
         return JsonResponse({
             'id_user': user.id_user,
@@ -306,14 +317,17 @@ def user_update(request, id_user):
             UserRole.objects.filter(user=user).delete()
             # Привязка новых ролей
             for role_name in roles:
-                user_role = UserRole.objects.create(user=user, role=role_name)
-
                 if role_name == "user":
-                    UserProfile.objects.update_or_create(user_role=user_role)
+                    user_role = UserRole.objects.create(user=user, role=role_name)
+                    UserProfile.objects.create(user_role=user_role)
 
-                if role_name == "manager":
-                    location = get_object_or_404(Location, id_location=location_id)
-                    ManagerProfile.objects.update_or_create(user_role=user_role, defaults={'location_id': location})
+                elif role_name == "manager":
+                    for location_id_obj in location_id:
+                        location = get_object_or_404(Location, id_location=location_id_obj)
+                        user_role = UserRole.objects.create(user=user, role=role_name)
+                        ManagerProfile.objects.create(user_role=user_role, location_id=location)
+                else:
+                    user_role = UserRole.objects.create(user=user, role=role_name)
 
         roles = list(user.roles.values_list("role", flat=True))
         role_list = []
