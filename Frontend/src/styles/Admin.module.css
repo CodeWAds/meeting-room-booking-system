@@ -7,6 +7,10 @@
   padding: 0;
 }
 
+/* styles/Admin.module.css */
+
+/* ... остальные стили без изменений ... */
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -25,6 +29,12 @@
 .headerTitle {
   font-size: 1.4rem;
   font-weight: bold;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .logoutButton {
@@ -46,9 +56,31 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.managerButton {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.managerButton:hover {
+  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+
+
 .navbar {
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
   background-color: rgb(32, 41, 56);
   color: #ffffff;
@@ -200,13 +232,14 @@
 
 
 .dataTable th:nth-child(1) {
-  width: 20%; 
+  width: 50px; 
 }
 .dataTable th:nth-child(2) {
-  width: 30%; 
+  width: 130px; 
 }
 .dataTable th:nth-child(3) {
-  width: 200px; 
+  max-width: 100px; 
+
 }
 .dataTable th:last-child {
   width: 100px; 
@@ -244,7 +277,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px;
+  padding: 13px 5px;
   display: flex;
   align-items: center;
   justify-content: center;

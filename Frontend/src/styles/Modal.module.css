@@ -15,6 +15,10 @@
   display: flex;
 }
 
+.noWrap {
+  white-space: nowrap;
+}
+
 .modalContent {
   background: rgb(17, 24, 40); 
   padding: 20px;

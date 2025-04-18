@@ -5,8 +5,10 @@ import styles from '../../styles/Booking.module.css';
 import CompleteModal from './complete.module';
 import CancelModal from './cancel.module';
 import Navbar from '../../components/Navbar';
+import { getData, deleteData, postData } from '../../api/api-utils';
+import { endpoints } from '../../api/config';
+import { useStore } from '../../store/app-store';
 
-// Типы данных для бронирований
 interface TimeSlot {
   id_time_slot: number;
   time_begin: string;
@@ -16,366 +18,279 @@ interface TimeSlot {
 
 interface Booking {
   id_booking: number;
-  user_id: number;
-  room_id: number;
+  user: number;
+  room: number;
   date: string;
-  review: string | null;
+  review: number;
   status: string;
   time_slot: TimeSlot[];
-  room_name: string;
-  capacity: number;
-  location: string;
-  equipment: string[];
+  room_name?: string;
+  capacity?: string;
+  location?: string;
+  equipment?: string[];
+  verify_code?: number;
 }
 
-// Тип для избранного (совместимый с favourites)
 interface Room {
+  id: number; // Добавляем id комнаты
   name: string;
-  capacity: string;
   location: string;
   icons: string[];
 }
 
-// Фиктивные данные
-const initialBookings: Booking[] = [
-  {
-    id_booking: 654321,
-    user_id: 15,
-    room_id: 102,
-    date: '2025-03-28',
-    review: null,
-    status: 'active',
-    time_slot: [
-      {
-        id_time_slot: 2,
-        time_begin: '09:52:00',
-        time_end: '09:55:00',
-        slot_type: 'regular',
-      },
-    ],
-    room_name: 'qwerty3',
-    capacity: 8,
-    location: '4 корпус, 2 этаж',
-    equipment: ['/svg/wifi.svg', '/svg/proektor.svg', '/svg/tv.svg', '/svg/internet.svg'],
-  },
-  {
-    id_booking: 612331,
-    user_id: 15,
-    room_id: 102,
-    date: '2025-03-28',
-    review: null,
-    status: 'active',
-    time_slot: [
-      {
-        id_time_slot: 1,
-        time_begin: '03:00:00',
-        time_end: '09:55:00',
-        slot_type: 'regular',
-      },
-    ],
-    room_name: 'qwerty2',
-    capacity: 8,
-    location: '4 корпус, 2 этаж',
-    equipment: ['/svg/wifi.svg', '/svg/proektor.svg', '/svg/tv.svg', '/svg/internet.svg'],
-  },
-  {
-    id_booking: 653321,
-    user_id: 15,
-    room_id: 102,
-    date: '2025-03-28',
-    review: null,
-    status: 'active',
-    time_slot: [
-      {
-        id_time_slot: 3,
-        time_begin: '07:40:00',
-        time_end: '09:20:00',
-        slot_type: 'regular',
-      },
-    ],
-    room_name: 'qwerty1',
-    capacity: 8,
-    location: '4 корпус, 2 этаж',
-    equipment: ['/svg/wifi.svg', '/svg/proektor.svg', '/svg/tv.svg', '/svg/internet.svg'],
-  },
-];
-
-// Фиктивные данные для доступных временных слотов для продления
 const availableTimeSlots: TimeSlot[] = [
-  { id_time_slot: 4, time_begin: '9:40', time_end: '10:10', slot_type: 'regular' },
-  { id_time_slot: 5, time_begin: '10:20', time_end: '10:50', slot_type: 'regular' },
-  { id_time_slot: 6, time_begin: '11:00', time_end: '11:30', slot_type: 'regular' },
-  { id_time_slot: 7, time_begin: '11:40', time_end: '12:10', slot_type: 'regular' },
-  { id_time_slot: 8, time_begin: '12:20', time_end: '12:50', slot_type: 'regular' },
+  { id_time_slot: 4, time_begin: '09:40:00', time_end: '10:10:00', slot_type: 'regular' },
+  { id_time_slot: 5, time_begin: '10:20:00', time_end: '10:50:00', slot_type: 'regular' },
+  { id_time_slot: 6, time_begin: '11:00:00', time_end: '11:30:00', slot_type: 'regular' },
+  { id_time_slot: 7, time_begin: '11:40:00', time_end: '12:10:00', slot_type: 'regular' },
+  { id_time_slot: 8, time_begin: '12:20:00', time_end: '12:50:00', slot_type: 'regular' },
 ];
 
 const MyBookingsPage: React.FC = () => {
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  const [favourites, setFavourites] = useState<Room[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedFavourites = localStorage.getItem('favourites');
-      return savedFavourites ? JSON.parse(savedFavourites) : [];
-    }
-    return [];
-  });
-
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [favourites, setFavourites] = useState<Room[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const store = useStore();
 
   const menuRef = useRef<HTMLDivElement>(null);
   const burgerRef = useRef<HTMLDivElement>(null);
 
-  // Синхронизация с localStorage при монтировании компонента
   useEffect(() => {
-    const syncFavourites = () => {
-      if (typeof window !== 'undefined') {
-        const savedFavourites = localStorage.getItem('favourites');
-        setFavourites(savedFavourites ? JSON.parse(savedFavourites) : []);
+    if (!store.id_user) return;
+
+    const fetchBookings = async () => {
+      try {
+        const response = await getData(endpoints.my_bookings(store.id_user));
+        if (response instanceof Error) throw response;
+
+        const adaptedData: Booking[] = (response.UserBookings || []).map((b: any) => ({
+          id_booking: b.id_booking,
+          user: b.user,
+          room: b.room,
+          date: b.date,
+          review: b.review,
+          status: b.status,
+          time_slot: b.time_slot,
+          room_name: b.room_name,
+          capacity: b.capacity,
+          location: b.location_name,
+          equipment: b.equipment || [],
+          verify_code: b['verify code'],
+        }));
+
+        setBookings(adaptedData);
+
+        // Формируем избранные комнаты на основе ответа с сервера
+        const initialFavourites: Room[] = (response.UserBookings || [])
+          .filter((b: any) => b.favorite)
+          .map((b: any) => ({
+            id: b.room, // Сохраняем room_id
+            name: b.room_name,
+            location: b.location_name,
+            icons: b.equipment || [],
+          }));
+
+        setFavourites(initialFavourites);
+      } catch (error) {
+        console.error('Ошибка при загрузке бронирований:', error);
+        setBookings([]);
+      } finally {
+        setIsLoading(false);
       }
     };
-    syncFavourites();
-  }, []);
 
-  // Обновление localStorage при изменении favourites
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('favourites', JSON.stringify(favourites));
-    }
-  }, [favourites]);
+    fetchBookings();
+  }, [store.id_user]);
 
-  // Слушаем изменения в localStorage (для других вкладок)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      if (typeof window !== 'undefined') {
-        const savedFavourites = localStorage.getItem('favourites');
-        setFavourites(savedFavourites ? JSON.parse(savedFavourites) : []);
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
-    }
-  }, []);
-
-  const toggleFavourite = (booking: Booking) => {
+  const toggleFavourite = async (booking: Booking) => {
     const room: Room = {
-      name: booking.room_name,
-      capacity: `до ${booking.capacity} человек`,
-      location: booking.location,
-      icons: booking.equipment,
+      id: booking.room, // Используем room_id из booking
+      name: booking.room_name!,
+      location: booking.location!,
+      icons: booking.equipment || [],
     };
 
-    if (
-      favourites.some(
-        (fav) => fav.name === room.name && fav.location === room.location
-      )
-    ) {
-      setFavourites(
-        favourites.filter(
-          (fav) => !(fav.name === room.name && fav.location === room.location)
-        )
-      );
-    } else {
-      setFavourites([...favourites, room]);
+    const exists = favourites.some(
+      (f) => f.id === room.id
+    );
+
+    try {
+      if (exists) {
+        // Удаляем комнату из избранных на сервере
+        const response = await deleteData(
+          endpoints.delete_favourite(store.id_user, room.id)
+        );
+        if (response instanceof Error) throw response;
+
+        // Обновляем состояние на клиенте
+        setFavourites((prev) =>
+          prev.filter((f) => f.id !== room.id)
+        );
+      } else {
+        // Добавляем комнату в избранное на сервере
+        const response = await postData(endpoints.add_to_favourite(store.id_user), {
+          room_id: booking.room,
+        });
+        if (response instanceof Error) throw response;
+
+        // Обновляем состояние на клиенте
+        setFavourites((prev) => [...prev, room]);
+      }
+    } catch (error) {
+      console.error('Ошибка при добавлении/удалении из избранного:', error);
     }
   };
 
-  const handleMenuToggle = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      menuRef.current &&
-      !menuRef.current.contains(event.target as Node) &&
-      burgerRef.current &&
-      !burgerRef.current.contains(event.target as Node)
-    ) {
-      setIsMenuOpen(false);
+  const cancelBooking = async (id: number) => {
+    try {
+      const response = await deleteData(endpoints.delete_booking(id));
+      if (response instanceof Error) throw response;
+      setBookings(bookings.filter(b => b.id_booking !== id));
+      console.log('Бронирование успешно отменено:', response);
+    } catch (error) {
+      console.error('Ошибка при отмене бронирования:', error);
+    } finally {
+      setIsCancelModalOpen(false);
+      setSelectedBookingId(null);
     }
   };
 
-  const handleLinkClick = () => {
-    setIsMenuOpen(false);
+  const completeBooking = (id: number) => {
+    setBookings(bookings.filter(b => b.id_booking !== id));
   };
 
-  useEffect(() => {
-    if (isMenuOpen) {
-      document.addEventListener('click', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [isMenuOpen]);
-
-  // Отмена бронирования
-  const cancelBooking = (bookingId: number) => {
-    setBookings(bookings.filter((booking) => booking.id_booking !== bookingId));
-    setIsCancelModalOpen(false);
-    setSelectedBookingId(null);
-  };
-
-  // Завершение бронирования (удаление из списка)
-  const completeBooking = (bookingId: number) => {
-    setBookings(bookings.filter((booking) => booking.id_booking !== bookingId));
-  };
-
-  // Продление бронирования
-  const extendBooking = (bookingId: number, newTimeSlot: TimeSlot) => {
+  const extendBooking = (id: number, newSlot: TimeSlot) => {
     setBookings(
-      bookings.map((booking) =>
-        booking.id_booking === bookingId
+      bookings.map(b =>
+        b.id_booking === id
           ? {
-              ...booking,
+              ...b,
               time_slot: [
+                ...b.time_slot.slice(0, -1),
                 {
-                  ...booking.time_slot[0],
-                  time_end: newTimeSlot.time_end,
+                  ...b.time_slot[b.time_slot.length - 1],
+                  time_end: newSlot.time_end,
                 },
               ],
             }
-          : booking
+          : b
       )
     );
     setIsExtendModalOpen(false);
     setSelectedBookingId(null);
   };
 
-  // Проверка, идет ли бронирование сейчас
-  const isBookingOngoing = (booking: Booking): boolean => {
+  const isBookingOngoing = (booking: Booking) => {
     const now = new Date();
-    const timeSlot = booking.time_slot[0];
-
-    const bookingStart = new Date(`${booking.date}T${timeSlot.time_begin}`);
-    const bookingEnd = new Date(`${booking.date}T${timeSlot.time_end}`);
-
-    return now >= bookingStart && now <= bookingEnd;
+    const start = new Date(`${booking.date}T${booking.time_slot[0].time_begin}`);
+    const end = new Date(`${booking.date}T${booking.time_slot[booking.time_slot.length - 1].time_end}`);
+    return now >= start && now <= end;
   };
 
-  // Проверка, не началось ли бронирование
-  const isBookingUpcoming = (booking: Booking): boolean => {
+  const isBookingUpcoming = (booking: Booking) => {
     const now = new Date();
-    const timeSlot = booking.time_slot[0];
-
-    const bookingStart = new Date(`${booking.date}T${timeSlot.time_begin}`);
-
-    return now < bookingStart;
+    const start = new Date(`${booking.date}T${booking.time_slot[0].time_begin}`);
+    return now < start;
   };
 
-  // Проверка, завершилось ли бронирование
-  const isBookingFinished = (booking: Booking): boolean => {
+  const isBookingFinished = (booking: Booking) => {
     const now = new Date();
-    const timeSlot = booking.time_slot[0];
-
-    const bookingEnd = new Date(`${booking.date}T${timeSlot.time_end}`);
-
-    return now > bookingEnd;
+    const end = new Date(`${booking.date}T${booking.time_slot[booking.time_slot.length - 1].time_end}`);
+    return now > end;
   };
 
-  const activeBookings = bookings.filter((booking) => !isBookingFinished(booking));
+  const activeBookings = bookings.filter(b => !isBookingFinished(b));
 
   return (
     <div className={styles.rooms}>
-      <Navbar title="Текущие бронирования"/>
-
-      {activeBookings.length === 0 ? (
-        <p className={styles.noBookings}>У вас нет текущих бронирований.</p>
+      <Navbar title="Текущие бронирования" />
+      {isLoading ? (
+        <p className={styles.noBookings}>Загрузка бронирований...</p>
+      ) : activeBookings.length === 0 ? (
+        <p className={styles.noBookings}>Бронирований нет</p>
       ) : (
         <div className={styles.roomList}>
-          {activeBookings.map((booking) => {
-            const isOngoing = isBookingOngoing(booking);
-            const isUpcoming = isBookingUpcoming(booking);
-            const timeSlot = booking.time_slot[0];
-
-            return (
-              <div key={booking.id_booking} className={styles.roomCard}>
-                <h4>{booking.room_name}</h4>
-                <p>Вместимость: до {booking.capacity} человек</p>
-                <p>Локация: {booking.location}</p>
-                <p>
-                  Дата:{' '}
-                  {new Date(booking.date).toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-                <p>
-                  Время: {timeSlot.time_begin.slice(0, 5)} - {timeSlot.time_end.slice(0, 5)}
-                </p>
-                <p>Код проверки: {booking.id_booking}</p>
-                <div className={styles.roomIcons}>
-                  {booking.equipment.map((icon, i) => (
-                    <img key={i} src={icon} alt={`icon-${i}`} className={styles.roomIcon} />
-                  ))}
-                </div>
-                <div className={styles.bookingActions}>
-                  {isUpcoming && (
+          {activeBookings.map(booking => (
+            <div key={booking.id_booking} className={styles.roomCard}>
+              <h4>{booking.room_name || `Комната №${booking.room}`}</h4>
+              <p>Локация: {booking.location || '?'}</p>
+              <p>
+                Дата: {new Date(booking.date).toLocaleDateString('ru-RU', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+              <p>
+                Время: {booking.time_slot[0].time_begin.slice(0, 5)} -{' '}
+                {booking.time_slot[booking.time_slot.length - 1].time_end.slice(0, 5)}
+              </p>
+              <p>Код проверки: {booking.verify_code}</p>
+              <div className={styles.roomIcons}>
+                {booking.equipment?.map((icon, i) => (
+                  <img key={i} src={icon} alt={`icon-${i}`} className={styles.roomIcon} />
+                ))}
+              </div>
+              <div className={styles.bookingActions}>
+                {isBookingUpcoming(booking) && (
+                  <button
+                    onClick={() => {
+                      setSelectedBookingId(booking.id_booking);
+                      setIsCancelModalOpen(true);
+                    }}
+                    className={`${styles.bookBtn} ${styles.cancelBtn}`}
+                  >
+                    Отменить бронирование
+                  </button>
+                )}
+                {isBookingOngoing(booking) && (
+                  <>
+                    <button
+                      onClick={() => completeBooking(booking.id_booking)}
+                      className={`${styles.bookBtn} ${styles.completeBtn}`}
+                    >
+                      Завершить
+                    </button>
                     <button
                       onClick={() => {
                         setSelectedBookingId(booking.id_booking);
-                        setIsCancelModalOpen(true);
+                        setIsExtendModalOpen(true);
                       }}
-                      className={`${styles.bookBtn} ${styles.cancelBtn}`}
+                      className={`${styles.bookBtn} ${styles.extendBtn}`}
                     >
-                      Отменить бронирование
+                      Продлить
                     </button>
-                  )}
-                  {isOngoing && (
-                    <>
-                      <button
-                        onClick={() => completeBooking(booking.id_booking)}
-                        className={`${styles.bookBtn} ${styles.completeBtn}`}
-                      >
-                        Завершить
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedBookingId(booking.id_booking);
-                          setIsExtendModalOpen(true);
-                        }}
-                        className={`${styles.bookBtn} ${styles.extendBtn}`}
-                      >
-                        Продлить
-                      </button>
-                    </>
-                  )}
-                </div>
-                <span
-                  onClick={() => toggleFavourite(booking)}
-                  className={styles.favorite}
-                >
-                  {favourites.some(
-                    (fav) =>
-                      fav.name === booking.room_name && fav.location === booking.location
-                  ) ? (
-                    <img src="/svg/liked.svg" alt="liked" />
-                  ) : (
-                    <img src="/svg/notliked.svg" alt="not liked" />
-                  )}
-                </span>
+                  </>
+                )}
               </div>
-            );
-          })}
+              <span onClick={() => toggleFavourite(booking)} className={styles.favorite}>
+                {favourites.some(f => f.id === booking.room) ? (
+                  <img src="/svg/liked.svg" alt="liked" />
+                ) : (
+                  <img src="/svg/notliked.svg" alt="not liked" />
+                )}
+              </span>
+            </div>
+          ))}
         </div>
       )}
+
       <CompleteModal
         isOpen={isExtendModalOpen}
         onClose={() => {
           setIsExtendModalOpen(false);
           setSelectedBookingId(null);
         }}
-        onExtend={(newTimeSlot) => {
-          if (selectedBookingId !== null) {
-            extendBooking(selectedBookingId, newTimeSlot);
-          }
+        onExtend={(slot) => {
+          if (selectedBookingId !== null) extendBooking(selectedBookingId, slot);
         }}
         availableSlots={availableTimeSlots}
       />
+
       <CancelModal
         isOpen={isCancelModalOpen}
         onClose={() => {
@@ -383,9 +298,7 @@ const MyBookingsPage: React.FC = () => {
           setSelectedBookingId(null);
         }}
         onConfirm={() => {
-          if (selectedBookingId !== null) {
-            cancelBooking(selectedBookingId);
-          }
+          if (selectedBookingId !== null) cancelBooking(selectedBookingId);
         }}
       />
     </div>

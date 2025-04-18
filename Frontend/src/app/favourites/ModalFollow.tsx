@@ -1,51 +1,130 @@
-import React, { useState } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import styles from '../../styles/ModalFollow.module.css';
 import { Calendar } from 'primereact/calendar';
 import '../../CalendarLocale';
+import { useRouter } from 'next/navigation';
+import { postData } from '../../api/api-utils';
+import { endpoints } from '../../api/config';
+import { useStore } from '../../store/app-store';
+
+interface TimeSlot {
+  id_time_slot: number;
+  time_begin: string;
+  time_end: string;
+  slot_type: string;
+  special_date?: string;
+}
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  roomId?: number;
+  roomName?: string;
+  locationId?: number;
 }
 
-const timeSlots = [
-  '9:00 - 9:30',
-  '9:40 - 10:10',
-  '10:20 - 10:50',
-  '11:00 - 11:30',
-  '11:40 - 12:10',
-  '12:20 - 12:50',
-  '13:00 - 13:30',
-  '13:40 - 14:10',
-  '14:20 - 14:50',
-  '15:00 - 15:30',
-  '15:40 - 16:10',
-  '16:20 - 16:50',
-  '17:00 - 17:30',
-  '17:40 - 18:10',
-  '18:20 - 18:50',
-  '19:00 - 19:30',
-  '19:40 - 20:10',
-  '20:20 - 20:50',
-  '21:00 - 21:30',
-];
+const ModalFollow: React.FC<ModalProps> = ({ isOpen, onClose, roomId, roomName, locationId }) => {
+  const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const router = useRouter();
+  const store = useStore();
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>();
+  // Получение временных слотов с бэкенда при выборе даты
+  useEffect(() => {
+    // Проверяем наличие всех необходимых данных
+    if (!locationId || !selectedDate || !store.id_user) {
+      setAvailableSlots([]);
+      setSelectedSlots([]);
+      if (!store.id_user) {
+        console.warn('store.id_user отсутствует, запрос на получение слотов не отправлен.');
+      }
+      if (!locationId) {
+        console.warn('locationId отсутствует, запрос на получение слотов не отправлен.');
+      }
+      if (!selectedDate) {
+        console.warn('selectedDate отсутствует, запрос на получение слотов не отправлен.');
+      }
+      return;
+    }
+
+    const fetchTimeSlots = async () => {
+      setIsLoadingSlots(true);
+      try {
+        const requestData = {
+          user_id: store.id_user,
+          date: selectedDate,
+        };
+
+        console.log('Отправляем запрос на получение слотов:', {
+          url: endpoints.time_slots(locationId),
+          data: requestData,
+        });
+
+        const response = await postData(endpoints.time_slots(locationId), requestData);
+        if (response instanceof Error) throw response;
+
+        console.log('Полученные данные о временных слотах:', response);
+
+        if (response.time_slots && Array.isArray(response.time_slots)) {
+          const slots: TimeSlot[] = response.time_slots
+            .filter((slot: any) => {
+              const isRegular = slot.slot_type === 'regular';
+              const isSpecialMatch =
+                slot.slot_type === 'special' &&
+                selectedDate &&
+                slot.special_date === selectedDate;
+              const willInclude = isRegular || isSpecialMatch;
+              console.log(`Слот ${slot.id_time_slot}:`, {
+                slot_type: slot.slot_type,
+                special_date: slot.special_date,
+                selectedDate,
+                willInclude,
+              });
+              return willInclude;
+            })
+            .map((slot: any) => ({
+              id_time_slot: slot.id_time_slot,
+              time_begin: slot.time_begin.slice(0, 5),
+              time_end: slot.time_end.slice(0, 5),
+              slot_type: slot.slot_type,
+              special_date: slot.special_date,
+            }));
+
+          console.log('Отфильтрованные слоты:', slots);
+          setAvailableSlots(slots);
+        } else {
+          console.error('Временные слоты не в ожидаемом формате:', response);
+          setAvailableSlots([]);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке временных слотов:', error);
+        setAvailableSlots([]);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+
+    fetchTimeSlots();
+  }, [locationId, selectedDate]); // Убираем store.id_user из зависимостей
 
   // Проверяет, идут ли выбранные слоты подряд
-  const isConsecutive = (slots: string[]) => {
+  const isConsecutive = (slots: TimeSlot[]) => {
     if (slots.length < 2) return true;
-    const indices = slots.map(slot => timeSlots.indexOf(slot)).sort((a, b) => a - b);
+    const indices = slots
+      .map(slot => availableSlots.findIndex(s => s.id_time_slot === slot.id_time_slot))
+      .sort((a, b) => a - b);
     return indices.every((index, i) => i === 0 || index === indices[i - 1] + 1);
   };
 
-  const handleSlotToggle = (slot: string) => {
+  const handleSlotToggle = (slot: TimeSlot) => {
     let newSelectedSlots = [...selectedSlots];
 
-    if (selectedSlots.includes(slot)) {
-      newSelectedSlots = newSelectedSlots.filter(s => s !== slot);
+    if (selectedSlots.some(s => s.id_time_slot === slot.id_time_slot)) {
+      newSelectedSlots = newSelectedSlots.filter(s => s.id_time_slot !== slot.id_time_slot);
     } else {
       newSelectedSlots.push(slot);
     }
@@ -53,11 +132,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
     if (isConsecutive(newSelectedSlots)) {
       setSelectedSlots(newSelectedSlots);
     } else {
-      setSelectedSlots([]); // Если слоты не подряд, сбрасываем
+      setSelectedSlots([]);
+      alert('Пожалуйста, выбирайте временные слоты подряд.');
     }
   };
 
-  const formatDate = (date: string) => {
+  const formatDate = (date?: string) => {
     if (!date) return 'ДД.ММ.ГГГГ';
     const [year, month, day] = date.split('-');
     return `${day}.${month}.${year}`;
@@ -71,28 +151,57 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
       const day = String(date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       setSelectedDate(dateString);
+      setSelectedSlots([]);
     } else {
-      setSelectedDate('');
+      setSelectedDate(undefined);
+      setSelectedSlots([]);
     }
   };
 
-
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(event.target.value);
-  };
   const calendarValue = selectedDate ? new Date(selectedDate) : null;
+
+  const makeBooking = async () => {
+    if (!store.id_user || !roomId || !selectedDate || selectedSlots.length === 0) {
+      alert('Пожалуйста, выберите дату и хотя бы один временной слот для бронирования.');
+      return;
+    }
+
+    try {
+      const payload = {
+        user_id: store.id_user,
+        room_id: roomId,
+        date: selectedDate,
+        review: 5,
+        status: 'pending',
+        slot: selectedSlots.map(slot => slot.id_time_slot),
+      };
+
+      const response = await postData(endpoints.create_booking, payload);
+
+      if (response instanceof Error) {
+        console.error('Ошибка при создании бронирования:', response);
+        alert('Не удалось создать бронирование. Попробуйте снова.');
+      } else {
+        console.log('Бронирование успешно создано:', response);
+        onClose();
+        router.push('/myBooking');
+      }
+    } catch (error) {
+      console.error('Произошла ошибка:', error);
+      alert('Произошла ошибка при бронировании.');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className={styles.modal} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <span className={styles.close} onClick={onClose}>
-          ×
-        </span>
+        <span className={styles.close} onClick={onClose}>×</span>
         <div className={styles.filters}>
           <div className={styles.filterRow}>
             <div className={styles.filterItem}>
-              <label>Выберите дату и локацию</label>
+              <label>Выберите дату для комнаты "{roomName || 'Не указана'}"</label>
               <div className={styles.filterInput}>
                 <div className={styles.dateInputWrapper}>
                   <Calendar
@@ -100,7 +209,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
                     onChange={handleCalendarChange}
                     dateFormat="dd.mm.yy"
                     placeholder="ДД.ММ.ГГГГ"
-                    locale='ru'
+                    locale="ru"
                     className="customCalendar"
                     panelClassName="customPanel"
                   />
@@ -120,21 +229,39 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               <div className={styles.timeSlots}>
-                {timeSlots.map((slot, index) => (
-                  <button
-                    key={index}
-                    className={`${styles.timeSlot} ${selectedSlots.includes(slot) ? styles.active : ''}`}
-                    onClick={() => handleSlotToggle(slot)}
-                  >
-                    {slot}
-                  </button>
-                ))}
+                {isLoadingSlots ? (
+                  <p>Загрузка временных слотов...</p>
+                ) : availableSlots.length === 0 ? (
+                  <p>
+                    {store.id_user
+                      ? locationId
+                        ? 'Нет доступных слотов для выбранной даты.'
+                        : 'Локация не указана.'
+                      : 'Пользователь не авторизован.'}
+                  </p>
+                ) : (
+                  availableSlots.map((slot) => (
+                    <button
+                      key={slot.id_time_slot}
+                      className={`${styles.timeSlot} ${
+                        selectedSlots.some(s => s.id_time_slot === slot.id_time_slot)
+                          ? styles.active
+                          : ''
+                      }`}
+                      onClick={() => handleSlotToggle(slot)}
+                    >
+                      {`${slot.time_begin} - ${slot.time_end}`}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>
         </div>
         <div className={styles.modalButtons}>
-          <button className={styles.confirmBtn}>Забронировать</button>
+          <button className={styles.confirmBtn} onClick={makeBooking}>
+            Забронировать
+          </button>
           <button className={styles.cancelBtn} onClick={onClose}>
             Отмена
           </button>
@@ -144,4 +271,4 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default Modal;
+export default ModalFollow;
