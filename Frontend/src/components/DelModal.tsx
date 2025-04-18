@@ -19,7 +19,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
           ✕
         </button>
         <h3>
-          Вы действительно хотите удалить комнату {roomName ? `"${roomName}"` : "запись"}?
+          Вы действительно хотите удалить {roomName ? `"${roomName}"` : "запись"}?
         </h3>
 
         <div className={styles.modalActions}>

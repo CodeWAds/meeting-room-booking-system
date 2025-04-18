@@ -35,6 +35,7 @@ interface Booking {
   location_name: string;
   capacity: number;
   user: number;
+  karma?: number;
   date: string;
   review: number | null;
   status: string;
@@ -70,7 +71,8 @@ const Manager: React.FC = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
   const [managerLocations, setManagerLocations] = useState<ManagerLocation[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]); // Все комнаты
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]); // Доступные комнаты после выбора слотов
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [verifyCode, setVerifyCode] = useState<string>('');
@@ -79,6 +81,11 @@ const Manager: React.FC = () => {
   const [isRoomModalOpen, setIsRoomModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
+  const [isEditBookingModalOpen, setIsEditBookingModalOpen] = useState<boolean>(false); // Модальное окно редактирования бронирования
+  const [isDeleteBookingModalOpen, setIsDeleteBookingModalOpen] = useState<boolean>(false); // Новое состояние для модального окна удаления бронирования
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null); // Выбранное бронирование для редактирования
+  const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null); // Выбранное бронирование для удаления
+  const [selectedReview, setSelectedReview] = useState<number | null>(null); // Выбранная оценка
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const [roomName, setRoomName] = useState<string>('');
   const [capacity, setCapacity] = useState<number>(1);
@@ -86,8 +93,9 @@ const Manager: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<number[]>([]);
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]); // Доступные временные слоты
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState<boolean>(false);
+  const [isRoomsLoading, setIsRoomsLoading] = useState<boolean>(false);
   const router = useRouter();
   const store = useStore();
 
@@ -107,9 +115,8 @@ const Manager: React.FC = () => {
       setIsLoading(true);
       try {
         const userRoles: UserRoles = await getData(endpoints.get_roles(66));
+        console.log(userRoles)
         if (userRoles instanceof Error) throw userRoles;
-
-        console.log('Роли пользователя:', userRoles);
 
         const hasAdminRole = userRoles.roles.some(role => role.role === 'admin');
         setIsAdmin(hasAdminRole);
@@ -141,16 +148,12 @@ const Manager: React.FC = () => {
     fetchUserRoles();
   }, [store.id_user, router]);
 
-  // Загрузка комнат
+  // Загрузка всех комнат
   useEffect(() => {
-    if (!selectedLocationId) return;
-
     const fetchRooms = async () => {
       try {
         const data = await getData(endpoints.rooms(selectedLocationId));
         if (data instanceof Error) throw data;
-
-        console.log('Данные о комнатах:', data);
 
         if (data.rooms && Array.isArray(data.rooms)) {
           const adaptedRooms: Room[] = data.rooms.map((room: any) => ({
@@ -178,8 +181,6 @@ const Manager: React.FC = () => {
     try {
       const bookingData = await getData(endpoints.get_location_booking(selectedLocationId));
       if (bookingData instanceof Error) throw bookingData;
-
-      console.log('Данные о бронированиях:', bookingData);
 
       const bookingsArray = bookingData.Booking || bookingData.bookings || [];
       if (Array.isArray(bookingsArray)) {
@@ -217,19 +218,17 @@ const Manager: React.FC = () => {
       setIsSlotsLoading(true);
 
       const requestData = {
-        user_id: store.id_user,
+        user_id: 66,
         date: currentDate,
       };
 
-      postData(endpoints.time_slots(selectedLocationId), requestData)
+      postData(endpoints.time_slots(1), requestData)
         .then((data) => {
           if (data instanceof Error) throw data;
 
-          console.log('Полученные временные слоты:', data);
-
           if (data.time_slots) {
             const now = new Date();
-            const currentTime = now.getHours() * 60 + now.getMinutes(); // Текущее время в минутах
+            const currentTime = now.getHours() * 60 + now.getMinutes();
 
             const slotData = data.time_slots
               .filter((slot: any) => {
@@ -248,8 +247,8 @@ const Manager: React.FC = () => {
               }))
               .filter((slot: TimeSlot) => {
                 const [hours, minutes] = slot.time_begin.split(':').map(Number);
-                const slotTime = hours * 60 + minutes; // Время начала слота в минутах
-                return slotTime > currentTime; // Оставляем только будущие слоты
+                const slotTime = hours * 60 + minutes;
+                return slotTime > currentTime;
               });
 
             setAvailableTimeSlots(slotData);
@@ -269,6 +268,45 @@ const Manager: React.FC = () => {
     }
   }, [selectedLocationId, currentDate, store.id_user]);
 
+  // Загрузка доступных комнат после выбора временных слотов
+  useEffect(() => {
+    const fetchAvailableRooms = async () => {
+      if (!currentDate || !selectedTimeSlots || selectedTimeSlots.length === 0 || !selectedLocationId) {
+        setAvailableRooms([]);
+        setIsRoomsLoading(false);
+        return;
+      }
+
+      setIsRoomsLoading(true);
+      try {
+        const params = {
+          user_id: 66,
+          location: 1,
+          date: currentDate,
+          time_slot: selectedTimeSlots,
+        };
+
+        const response = await postData(endpoints.get_available_rooms, params);
+        if (response instanceof Error) throw response;
+
+        const adaptedRooms: Room[] = (response.available_rooms || []).map((room: any) => ({
+          id_room: room.id,
+          room_name: room.name,
+          capacity: room.capacity,
+          id_equipment: room.id_equipment || [],
+        }));
+        setAvailableRooms(adaptedRooms);
+      } catch (error) {
+        console.error('Ошибка при загрузке доступных комнат:', error);
+        setAvailableRooms([]);
+      } finally {
+        setIsRoomsLoading(false);
+      }
+    };
+
+    fetchAvailableRooms();
+  }, [currentDate, selectedTimeSlots, selectedLocationId, store.id_user]);
+
   const handleCalendarChange = (e: { value: Date | null }) => {
     if (e.value) {
       const date = e.value;
@@ -285,6 +323,8 @@ const Manager: React.FC = () => {
   const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const locationId = Number(e.target.value);
     setSelectedLocationId(locationId);
+    setSelectedTimeSlots([]); // Сбрасываем выбранные слоты при смене локации
+    setSelectedRoomId(null); // Сбрасываем выбранную комнату
   };
 
   const handleAdminClick = () => {
@@ -296,11 +336,20 @@ const Manager: React.FC = () => {
   };
 
   const handleEdit = (id: number) => {
-    console.log(`Редактировать бронирование с ID ${id}`);
+    const booking = bookings.find(b => b.id_booking === id);
+    if (booking) {
+      setSelectedBooking(booking);
+      setSelectedReview(booking.review || null); // Устанавливаем текущую оценку, если она есть
+      setIsEditBookingModalOpen(true);
+    }
   };
 
   const handleDelete = (id: number) => {
-    console.log(`Удалить бронирование с ID ${id}`);
+    const booking = bookings.find(b => b.id_booking === id);
+    if (booking) {
+      setBookingToDelete(booking);
+      setIsDeleteBookingModalOpen(true);
+    }
   };
 
   const handleVerifyCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,8 +366,8 @@ const Manager: React.FC = () => {
       const response = await postData(endpoints.verify_booking, { code: Number(verifyCode) });
       if (response instanceof Error) throw response;
 
-      console.log('Данные бронирования:', response);
       setBookingDetails(response);
+
       setIsModalOpen(true);
     } catch (error) {
       console.error('Ошибка при проверке бронирования:', error);
@@ -347,12 +396,10 @@ const Manager: React.FC = () => {
       );
       if (response instanceof Error) throw response;
 
-      console.log('Бронирование успешно подтверждено:', response);
       alert('Бронирование подтверждено!');
       setIsModalOpen(false);
       setVerifyCode('');
       setBookingDetails(null);
-
       await fetchBookings();
     } catch (error) {
       console.error('Ошибка при подтверждении бронирования:', error);
@@ -390,7 +437,6 @@ const Manager: React.FC = () => {
       const response = await postData(endpoints.add_room(selectedLocationId), requestBody);
       if (response instanceof Error) throw response;
 
-      console.log('Комната успешно добавлена:', response);
       alert('Комната добавлена!');
       setIsRoomModalOpen(false);
       setRoomName('');
@@ -422,7 +468,6 @@ const Manager: React.FC = () => {
       const response = await deleteData(endpoints.delete_room(selectedLocationId, roomToDelete.id_room));
       if (response instanceof Error) throw response;
 
-      console.log('Комната успешно удалена:', response);
       alert('Комната удалена!');
       setIsDeleteModalOpen(false);
       setRoomToDelete(null);
@@ -453,7 +498,6 @@ const Manager: React.FC = () => {
     setCapacity(value < 1 ? 1 : value);
   };
 
-  // Обработчики для создания бронирования
   const handleAddBooking = () => {
     setIsBookingModalOpen(true);
   };
@@ -465,11 +509,11 @@ const Manager: React.FC = () => {
     }
 
     const requestBody = {
-      user_id: store.id_user,
+      user_id: 66,
       room_id: selectedRoomId,
       date: currentDate,
       review: null,
-      status: 'pending',
+      status: 'confirmed',
       slot: selectedTimeSlots,
     };
 
@@ -477,7 +521,6 @@ const Manager: React.FC = () => {
       const response = await postData(endpoints.create_booking, requestBody);
       if (response instanceof Error) throw response;
 
-      console.log('Бронирование успешно создано:', response);
       alert('Бронирование создано!');
       setIsBookingModalOpen(false);
       setSelectedRoomId(null);
@@ -501,7 +544,6 @@ const Manager: React.FC = () => {
     const firstAvailableSlotId = availableTimeSlots[0].id_time_slot;
     const clickedIndex = availableTimeSlots.findIndex(slot => slot.id_time_slot === slotId);
 
-    // Если выбранный слот не является первым доступным или следующим за последним выбранным
     if (selectedTimeSlots.length === 0) {
       if (slotId !== firstAvailableSlotId) {
         alert('Вы можете выбирать слоты только начиная с первого доступного.');
@@ -511,10 +553,8 @@ const Manager: React.FC = () => {
     } else {
       const lastSelectedIndex = availableTimeSlots.findIndex(slot => slot.id_time_slot === selectedTimeSlots[selectedTimeSlots.length - 1]);
       if (clickedIndex === lastSelectedIndex + 1) {
-        // Добавляем следующий слот
         setSelectedTimeSlots([...selectedTimeSlots, slotId]);
       } else if (selectedTimeSlots.includes(slotId)) {
-        // Удаляем слот, если он уже выбран (разрешено удалять только последний)
         if (slotId === selectedTimeSlots[selectedTimeSlots.length - 1]) {
           setSelectedTimeSlots(selectedTimeSlots.slice(0, -1));
         }
@@ -524,11 +564,75 @@ const Manager: React.FC = () => {
     }
   };
 
+  const handleSaveEditBooking = async () => {
+    if (!selectedBooking || selectedReview === null) {
+      alert('Пожалуйста, выберите оценку.');
+      return;
+    }
+
+    const requestBody = {
+      review: selectedReview,
+    };
+
+    try {
+      const response = await postData(endpoints.update_booking(selectedBooking.id_booking), requestBody);
+      if (response instanceof Error) throw response;
+
+      alert('Оценка бронирования обновлена!');
+      setIsEditBookingModalOpen(false);
+      setSelectedBooking(null);
+      setSelectedReview(null);
+      await fetchBookings(); // Обновляем список бронирований
+    } catch (error) {
+      console.error('Ошибка при обновлении бронирования:', error);
+      alert('Не удалось обновить оценку бронирования. Попробуйте снова.');
+    }
+  };
+
+  const handleCancelEditBooking = () => {
+    setIsEditBookingModalOpen(false);
+    setSelectedBooking(null);
+    setSelectedReview(null);
+  };
+
+  const handleReviewSelect = (review: number) => {
+    setSelectedReview(review);
+  };
+
+  const handleConfirmDeleteBooking = async () => {
+    if (!bookingToDelete) return;
+
+    try {
+      const response = await deleteData(endpoints.delete_booking(bookingToDelete.id_booking));
+      if (response instanceof Error) throw response;
+
+      alert('Бронирование удалено!');
+      setIsDeleteBookingModalOpen(false);
+      setBookingToDelete(null);
+      await fetchBookings(); // Обновляем список бронирований
+    } catch (error) {
+      console.error('Ошибка при удалении бронирования:', error);
+      alert('Не удалось удалить бронирование. Попробуйте снова.');
+    }
+  };
+
+  const handleCancelDeleteBooking = () => {
+    setIsDeleteBookingModalOpen(false);
+    setBookingToDelete(null);
+  };
+
   const calendarValue = selectedDate ? new Date(selectedDate) : null;
 
   const filteredBookings = selectedDate
     ? bookings.filter((booking) => booking.date === selectedDate)
     : bookings;
+
+  // Опции для оценки
+  const reviewOptions = [
+    { value: -5, label: 'Плохо', className: styles.badReviewButton },
+    { value: 0, label: 'Нейтрально', className: styles.neutralReviewButton },
+    { value: 5, label: 'Хорошо', className: styles.goodReviewButton },
+  ];
 
   return (
     <>
@@ -635,6 +739,7 @@ const Manager: React.FC = () => {
               <p><strong>Время:</strong> {bookingDetails.time_slot.length > 0
                 ? `${bookingDetails.time_slot[0].time_begin.slice(0, 5)} - ${bookingDetails.time_slot[bookingDetails.time_slot.length - 1].time_end.slice(0, 5)}`
                 : 'Время не указано'}</p>
+              <p><strong>Рейтинг пользователя:</strong> {bookingDetails.karma}</p>
               <p><strong>Статус:</strong> {bookingDetails.status === 'pending' ? 'Ожидает подтверждения' : 'Подтверждено'}</p>
               <p><strong>Код подтверждения:</strong> {bookingDetails['verify code']}</p>
             </div>
@@ -715,21 +820,6 @@ const Manager: React.FC = () => {
             <h3>Детали бронирования</h3>
             <div className={styles.modalContent}>
               <div className={styles.inputInModal}>
-                Переговорная
-                <select
-                  value={selectedRoomId || ''}
-                  onChange={(e) => setSelectedRoomId(Number(e.target.value))}
-                  className={styles.roomInput}
-                >
-                  <option value="">Выберите комнату</option>
-                  {rooms.map(room => (
-                    <option key={room.id_room} value={room.id_room}>
-                      {room.room_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles.inputInModal}>
                 Дата бронирования
                 <p>{currentDate.split('-').reverse().join('.')}</p>
               </div>
@@ -743,9 +833,8 @@ const Manager: React.FC = () => {
                       <button
                         key={slot.id_time_slot}
                         onClick={() => handleTimeSlotToggle(slot.id_time_slot)}
-                        className={`${styles.timeSlot} ${
-                          selectedTimeSlots.includes(slot.id_time_slot) ? styles.selectedTimeSlot : ''
-                        }`}
+                        className={`${styles.timeSlot} ${selectedTimeSlots.includes(slot.id_time_slot) ? styles.selectedTimeSlot : ''
+                          }`}
                       >
                         {slot.time_begin.slice(0, 5)} - {slot.time_end.slice(0, 5)}
                       </button>
@@ -755,12 +844,107 @@ const Manager: React.FC = () => {
                   )}
                 </div>
               </div>
+              <div className={styles.inputInModal}>
+                Переговорная
+                {isRoomsLoading ? (
+                  <p>Загрузка комнат...</p>
+                ) : selectedTimeSlots.length > 0 ? (
+                  availableRooms.length > 0 ? (
+                    <select
+                      value={selectedRoomId || ''}
+                      onChange={(e) => setSelectedRoomId(Number(e.target.value))}
+                      className={styles.roomInput}
+                    >
+                      <option value="">Выберите комнату</option>
+                      {availableRooms.map(room => (
+                        <option key={room.id_room} value={room.id_room}>
+                          {room.room_name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p>Нет доступных комнат для выбранного времени</p>
+                  )
+                ) : (
+                  <p>Выберите временные слоты, чтобы увидеть доступные комнаты</p>
+                )}
+              </div>
             </div>
             <div className={styles.modalActions}>
               <button className={styles.confirmButton} onClick={handleSaveBooking}>
                 Сохранить
               </button>
               <button className={styles.cancelButton} onClick={handleCancelBooking}>
+                Отменить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditBookingModalOpen && selectedBooking && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <button className={styles.closeButton} onClick={handleCancelEditBooking}>
+              ✕
+            </button>
+            <h3>Редактировать бронирование</h3>
+            <div className={styles.modalContent}>
+              <p><strong>ID бронирования:</strong> {selectedBooking.id_booking}</p>
+              <p><strong>Комната:</strong> {selectedBooking.room_name}</p>
+              <p><strong>Дата:</strong> {selectedBooking.date}</p>
+              <p><strong>Время:</strong> {selectedBooking.time_slot.length > 0
+                ? `${selectedBooking.time_slot[0].time_begin.slice(0, 5)} - ${selectedBooking.time_slot[selectedBooking.time_slot.length - 1].time_end.slice(0, 5)}`
+                : 'Время не указано'}</p>
+              <div className={styles.inputInModal}>
+                <p>Оценка бронирования:</p>
+                <div className={styles.reviewButtons}>
+                  {reviewOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleReviewSelect(option.value)}
+                      className={`${option.className} ${selectedReview === option.value ? styles.selectedReviewButton : ''
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmButton} onClick={handleSaveEditBooking}>
+                Сохранить
+              </button>
+              <button className={styles.cancelButton} onClick={handleCancelEditBooking}>
+                Отменить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteBookingModalOpen && bookingToDelete && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <button className={styles.closeButton} onClick={handleCancelDeleteBooking}>
+              ✕
+            </button>
+            <h3>Подтверждение удаления</h3>
+            <div className={styles.modalContent}>
+              <p>Вы уверены, что хотите удалить бронирование?</p>
+              <p><strong>ID бронирования:</strong> {bookingToDelete.id_booking}</p>
+              <p><strong>Комната:</strong> {bookingToDelete.room_name}</p>
+              <p><strong>Дата:</strong> {bookingToDelete.date}</p>
+              <p><strong>Время:</strong> {bookingToDelete.time_slot.length > 0
+                ? `${bookingToDelete.time_slot[0].time_begin.slice(0, 5)} - ${bookingToDelete.time_slot[bookingToDelete.time_slot.length - 1].time_end.slice(0, 5)}`
+                : 'Время не указано'}</p>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmButton} onClick={handleConfirmDeleteBooking}>
+                Удалить
+              </button>
+              <button className={styles.cancelButton} onClick={handleCancelDeleteBooking}>
                 Отменить
               </button>
             </div>

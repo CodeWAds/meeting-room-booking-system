@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from '../styles/Rooms.module.css';
-import { getData } from '../api/api-utils';
+import { getData, updateData } from '../api/api-utils';
 import { endpoints } from '../api/config';
 
 interface Equipment {
@@ -18,15 +18,20 @@ interface Room {
 }
 
 interface RoomsManagerProps {
-  locationId: number | null; // Обновляем тип, так как в Manager.tsx selectedLocationId может быть null
+  locationId: number | null;
   locationName?: string;
-  onDelete: (room: { id_room: number; room_name: string }) => void; // Добавляем проп для удаления
-  refreshKey?: number; // Добавляем проп для обновления списка комнат
+  onDelete: (room: { id_room: number; room_name: string }) => void;
+  refreshKey?: number;
 }
 
 const RoomsManager: React.FC<RoomsManagerProps> = ({ locationId, locationName, onDelete, refreshKey = 0 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [editRoomName, setEditRoomName] = useState<string>('');
+  const [editCapacity, setEditCapacity] = useState<number>(1);
+  const [editEquipmentIds, setEditEquipmentIds] = useState<number[]>([]); // Состояние для оборудования
 
   // Маппинг иконок для оборудования
   const equipmentIcons: { [key: string]: string } = {
@@ -70,18 +75,95 @@ const RoomsManager: React.FC<RoomsManagerProps> = ({ locationId, locationName, o
     };
 
     fetchRooms();
-  }, [locationId, refreshKey]); // Добавляем refreshKey в зависимости
+  }, [locationId, refreshKey]);
 
-  const handleEdit = (id: number) => {
-    console.log(`Редактировать комнату с ID ${id}`);
+  const handleEdit = (room: Room) => {
+    setSelectedRoom(room);
+    setEditRoomName(room.room_name);
+    setEditCapacity(room.capacity);
+
+    // Преобразуем id_equipment в индексы для equipmentIcons
+    const equipmentIndexes = room.id_equipment
+      .map((equip: Equipment) => {
+        const equipmentNames = Object.keys(equipmentIcons);
+        const index = equipmentNames.indexOf(equip.name);
+        return index !== -1 ? index + 1 : null; // +1, так как индексы начинаются с 1
+      })
+      .filter((index): index is number => index !== null);
+
+    setEditEquipmentIds(equipmentIndexes);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedRoom || !locationId) return;
+
+    // Преобразуем индексы оборудования в массив id_equipment для отправки на сервер
+    const updatedEquipmentIds = editEquipmentIds.map(id => id); // Индексы уже соответствуют id оборудования
+
+    const requestBody = {
+      room_name: editRoomName,
+      capacity: editCapacity,
+      id_equipment: updatedEquipmentIds, // Отправляем массив id оборудования
+    };
+
+    try {
+      const response = await updateData(endpoints.update_room(locationId, selectedRoom.id_room), requestBody);
+      if (response instanceof Error) throw response;
+
+      alert('Комната обновлена!');
+      setIsEditModalOpen(false);
+      setSelectedRoom(null);
+      setEditRoomName('');
+      setEditCapacity(1);
+      setEditEquipmentIds([]);
+
+      // Обновляем список комнат локально
+      const updatedRooms = rooms.map(room =>
+        room.id_room === selectedRoom.id_room
+          ? {
+              ...room,
+              room_name: editRoomName,
+              capacity: editCapacity,
+              id_equipment: updatedEquipmentIds.map(id => {
+                const equipmentName = Object.keys(equipmentIcons)[id - 1];
+                return { name: equipmentName, description: equipmentName };
+              }),
+            }
+          : room
+      );
+      setRooms(updatedRooms);
+    } catch (error) {
+      console.error('Ошибка при обновлении комнаты:', error);
+      alert('Не удалось обновить комнату. Попробуйте снова.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalOpen(false);
+    setSelectedRoom(null);
+    setEditRoomName('');
+    setEditCapacity(1);
+    setEditEquipmentIds([]);
+  };
+
+  const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    setEditCapacity(value < 1 ? 1 : value);
+  };
+
+  const handleEquipmentToggle = (id: number) => {
+    setEditEquipmentIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(eqId => eqId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
   };
 
   const handleDelete = (room: { id_room: number; room_name: string }) => {
-    onDelete(room); // Вызываем проп onDelete, передавая объект комнаты
-  };
-
-  const handleBook = (id: number) => {
-    console.log(`Забронировать комнату с ID ${id}`);
+    onDelete(room);
   };
 
   return (
@@ -94,7 +176,7 @@ const RoomsManager: React.FC<RoomsManagerProps> = ({ locationId, locationName, o
             <div className={styles.headCard}>
               <h4>{room.room_name}</h4>
               <div>
-                <button onClick={() => handleEdit(room.id_room)}>
+                <button onClick={() => handleEdit(room)}>
                   <img
                     src="/svg/edit.svg"
                     alt="Edit"
@@ -130,13 +212,67 @@ const RoomsManager: React.FC<RoomsManagerProps> = ({ locationId, locationName, o
                 <p>Оборудование не указано</p>
               )}
             </div>
-            <button className={styles.bookBtn} onClick={() => handleBook(room.id_room)}>
-              Забронировать
-            </button>
           </div>
         ))
       ) : (
         <p>Комнаты не найдены.</p>
+      )}
+
+      {/* Модальное окно для редактирования комнаты */}
+      {isEditModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <button className={styles.closeButton} onClick={handleCancelEdit}>
+              ✕
+            </button>
+            <h3>Редактировать комнату</h3>
+            <div className={styles.modalContent}>
+              <div className={styles.inputInModal}>
+                <label>Название</label>
+                <input
+                  type="text"
+                  placeholder="Название"
+                  value={editRoomName}
+                  onChange={(e) => setEditRoomName(e.target.value)}
+                  className={styles.roomInput}
+                />
+              </div>
+              <div className={styles.inputInModal}>
+                <label>Вместимость</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={15}
+                  placeholder="Вместимость (человек)"
+                  value={editCapacity}
+                  onChange={handleCapacityChange}
+                  className={styles.roomInput}
+                />
+              </div>
+              <div className={styles.equipmentList}>
+                {Object.entries(equipmentIcons).map(([equipment, icon], index) => (
+                  <label key={index} className={styles.equipmentItem}>
+                    <input
+                      type="checkbox"
+                      checked={editEquipmentIds.includes(index + 1)}
+                      onChange={() => handleEquipmentToggle(index + 1)}
+                    />
+                    <img src={icon} alt={equipment} className={styles.equipmentIcon} width="24" height="24" />
+                    {equipment}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmButton} onClick={handleSaveEdit}>
+                Сохранить
+              </button>
+              <button className={styles.cancelButton} onClick={handleCancelEdit}>
+                Отменить
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

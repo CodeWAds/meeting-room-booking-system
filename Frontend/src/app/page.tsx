@@ -1,14 +1,15 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import TelegramWebApps from "@twa-dev/sdk";
-import Navbar from "../components/Navbar";
-import Filters from "../components/Filters";
-import Rooms from "../components/Rooms";
-import Modal from "../components/Modal";
-import styles from "../styles/Home.module.css";
-import { useStore } from "../store/app-store";
-import { postData } from "../api/api-utils";
-import { endpoints } from "../api/config";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import TelegramWebApps from '@twa-dev/sdk';
+import Navbar from '../components/Navbar';
+import Filters from '../components/Filters';
+import Rooms from '../components/Rooms';
+import Modal from '../components/Modal';
+import styles from '../styles/Home.module.css';
+import { useStore } from '../store/app-store';
+import { postData } from '../api/api-utils';
+import { endpoints } from '../api/config';
 
 interface TimeSlot {
   id: number;
@@ -38,15 +39,27 @@ const Home: React.FC = () => {
     timeStart: string,
     timeEnd: string
   ): void => {
+    // Проверяем наличие userId
+    if (!store.user?.id) {
+      alert('Ошибка: пользователь не авторизован. Пожалуйста, войдите в систему.');
+      return;
+    }
+
+    // Проверяем наличие слотов
     const slot = calculateSlots();
+    if (!slot || slot.length === 0) {
+      alert('Ошибка: не выбраны временные слоты для бронирования.');
+      return;
+    }
+
     setBookingDetails({ roomName, roomId, date, timeStart, timeEnd, slot });
     setIsModalOpen(true);
   };
 
   const calculateSlots = (): number[] => {
     if (!selectedTimeSlots || selectedTimeSlots.length === 0) {
-      console.warn("Слоты не выбраны, возвращаем дефолтное значение");
-      return [1, 2];
+      console.warn('Слоты не выбраны');
+      return [];
     }
 
     return selectedTimeSlots.map((slot) => slot.id);
