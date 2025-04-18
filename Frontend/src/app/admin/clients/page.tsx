@@ -1,60 +1,64 @@
+
 "use client";
 import React, { useState } from "react";
 import styles from "../../../styles/Admin.module.css";
 import DeleteConfirmationModal from "../../../components/DelModal";
+import ClientStatusModal from "../../../components/ClientsStatusModal";
+
+interface Client {
+  id: number;
+  name: string;
+  username: string;
+  status: "Активен" | "Заблокирован";
+}
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false); 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); 
-  const [selectedClientId, setSelectedClientId] = useState(null); 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
-  const clients = [
-    { id: 1, name: "Анна", username: "anna_sky" },
-    { id: 2, name: "Дмитрий", username: "dmitry_rock" },
-    { id: 3, name: "София", username: "sofia_star" },
-    { id: 4, name: "Максим", username: "max_sun" },
-    { id: 5, name: "Екатерина", username: "katya_moon" },
-    { id: 6, name: "Владимир", username: "vova_wind" },
-    { id: 7, name: "Ольга", username: "olga_rain" },
-    { id: 8, name: "Николай", username: "nikolay_fire" },
-    { id: 9, name: "Татьяна", username: "tanya_wave" },
-    { id: 10, name: "Сергей", username: "sergey_stone" },
-  ];
+  const [clients, setClients] = useState<Client[]>([
+    { id: 1, name: "Анна", username: "anna_sky", status: "Активен" },
+    { id: 2, name: "Дмитрий", username: "dmitry_rock", status: "Активен" },
+    { id: 3, name: "София", username: "sofia_star", status: "Заблокирован" },
+    { id: 4, name: "Максим", username: "max_sun", status: "Активен" },
+    { id: 5, name: "Екатерина", username: "katya_moon", status: "Активен" },
+    { id: 6, name: "Владимир", username: "vova_wind", status: "Заблокирован" },
+    { id: 7, name: "Ольга", username: "olga_rain", status: "Активен" },
+    { id: 8, name: "Николай", username: "nikolay_fire", status: "Активен" },
+    { id: 9, name: "Татьяна", username: "tanya_wave", status: "Заблокирован" },
+    { id: 10, name: "Сергей", username: "sergey_stone", status: "Активен" },
+  ]);
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-
-  const [newClient, setNewClient] = useState({ name: "", username: "" });
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewClient({ ...newClient, [name]: value });
+  const handleEditClient = (client: Client) => {
+    setEditingClient(client);
+    setIsEditModalOpen(true);
   };
 
-  const handleAddClient = () => {
-    if (newClient.name && newClient.username) {
-      console.log("Новый клиент:", newClient);
-
-      setNewClient({ name: "", username: "" });
-      setIsAddModalOpen(false);
-    } else {
-      alert("Пожалуйста, заполните все поля.");
-    }
+  const handleUpdateClientStatus = (updatedClient: Client) => {
+    setClients((prev) =>
+      prev.map((client) =>
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    );
+    setIsEditModalOpen(false);
+    setEditingClient(null);
   };
 
-
-  const handleDeleteClient = (clientId) => {
+  const handleDeleteClient = (clientId: number) => {
     setSelectedClientId(clientId);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedClientId) {
-      console.log(`Удаление клиента с ID ${selectedClientId}`);
-      
+      setClients((prev) => prev.filter((client) => client.id !== selectedClientId));
       setIsDeleteModalOpen(false);
       setSelectedClientId(null);
     }
@@ -62,45 +66,15 @@ export default function ClientsPage() {
 
   return (
     <main className={styles.content}>
-   
-      {isAddModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>Добавление записи</h3>
-            <form>
-              <div className={styles.formGroup}>
-                <label>Имя:</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={newClient.name}
-                  onChange={handleInputChange}
-                  placeholder="Введите имя"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Логин:</label>
-                <input
-                  type="text"
-                  name="username"
-                  value={newClient.username}
-                  onChange={handleInputChange}
-                  placeholder="Введите логин"
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button type="button" onClick={handleAddClient} className={styles.addButtonModal}>
-                  Добавить
-                </button>
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className={styles.cancelButton}>
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      <ClientStatusModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingClient(null);
+        }}
+        client={editingClient}
+        onSave={handleUpdateClientStatus}
+      />
 
       {isDeleteModalOpen && (
         <DeleteConfirmationModal
@@ -110,7 +84,6 @@ export default function ClientsPage() {
         />
       )}
 
-      
       <div className={styles.contentHeader}>
         <h2 className={styles.pageTitle}>Клиенты</h2>
         <div className={styles.actions}>
@@ -121,9 +94,6 @@ export default function ClientsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button className={styles.addButton} onClick={() => setIsAddModalOpen(true)}>
-            Добавить
-          </button>
         </div>
       </div>
       <div className={styles.tableWrapper}>
@@ -133,6 +103,7 @@ export default function ClientsPage() {
               <th>ID</th>
               <th>Имя</th>
               <th>Логин</th>
+              <th>Статус</th>
               <th>Действия</th>
             </tr>
           </thead>
@@ -142,8 +113,12 @@ export default function ClientsPage() {
                 <td>#{client.id}</td>
                 <td>{client.name}</td>
                 <td>{client.username}</td>
+                <td>{client.status}</td>
                 <td className={styles.actionsCell}>
-                  <button className={styles.editBtn}>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => handleEditClient(client)}
+                  >
                     <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
                   </button>
                   <button

@@ -12,6 +12,7 @@
     "@telegram-apps/sdk-react": "^3.1.5",
     "@twa-dev/sdk": "^8.0.2",
     "chart.js": "^4.4.8",
+    "chartjs-2": "^0.0.1-security",
     "next": "15.2.3",
     "primereact": "^10.9.4",
     "react": "^19.0.0",
