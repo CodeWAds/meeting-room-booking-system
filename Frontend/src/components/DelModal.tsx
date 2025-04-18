@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "../styles/DelModal.module.css";
 
+
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,6 +21,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
         <h3>
           Вы действительно хотите удалить комнату {roomName ? `"${roomName}"` : "запись"}?
         </h3>
+
         <div className={styles.modalActions}>
           <button type="button" onClick={onConfirm} className={styles.deleteButton}>
             Удалить

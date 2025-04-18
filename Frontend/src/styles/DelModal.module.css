@@ -22,16 +22,21 @@
     cursor: pointer;
   }  
 
+
   .modalContent {
     background: rgb(23, 32, 55);
     padding: 15px;
+
     border-radius: 60px;
+
     border: 2px solid rgb(255, 255, 255);
     width: 400px;
     color: white;
     height: 30%;
     align-content: center;
+
     position: relative;
+
   }
   
   .modalContent h3 {
@@ -51,7 +56,9 @@
     color: white;
     padding: 10px 20px;
     border: none;
+
     border-radius: 60px;
+
     cursor: pointer;
     width: 40%;
     margin-left: 20px;
@@ -64,7 +71,9 @@
     font-size: 15px;
     padding: 10px 20px;
     border: none;
+
     border-radius: 60px;
+
     cursor: pointer;
     margin-right: 20px;
     width: 40%;

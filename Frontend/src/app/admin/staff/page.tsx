@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import styles from "../../../styles/Admin.module.css";
 import DeleteConfirmationModal from "../../../components/DelModal";
+
 import EmployeeModal from "../../../components/StaffModal";
 
 interface Employee {
@@ -20,6 +21,7 @@ export default function StaffPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const [staff, setStaff] = useState<Employee[]>([
+
     { id: 1, name: "Анна", username: "anna_smirnova" },
     { id: 2, name: "Дмитрий", username: "dmitry_k" },
     { id: 3, name: "Елена", username: "elena_v" },
@@ -30,11 +32,14 @@ export default function StaffPage() {
     { id: 8, name: "Андрей", username: "andrey_s" },
     { id: 9, name: "Екатерина", username: "ekaterina_l" },
     { id: 10, name: "Михаил", username: "mikhail_v" },
+
   ]);
+
 
   const filteredStaff = staff.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
 
   const handleAddOrUpdateEmployee = (employee: Employee) => {
     if (editingEmployee) {
@@ -63,7 +68,9 @@ export default function StaffPage() {
 
   const confirmDelete = () => {
     if (selectedEmployeeId) {
+
       setStaff((prev) => prev.filter((emp) => emp.id !== selectedEmployeeId));
+
       setIsDeleteModalOpen(false);
       setSelectedEmployeeId(null);
     }
@@ -103,6 +110,7 @@ export default function StaffPage() {
             Добавить
           </button>
         </div>
+
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
@@ -121,10 +129,12 @@ export default function StaffPage() {
                 <td>{employee.name}</td>
                 <td>{employee.username}</td>
                 <td className={styles.actionsCell}>
+
                   <button
                     className={styles.editBtn}
                     onClick={() => handleEditEmployee(employee)}
                   >
+
                     <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
                   </button>
                   <button

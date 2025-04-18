@@ -239,6 +239,7 @@
 }
 .dataTable th:nth-child(3) {
   max-width: 100px; 
+
 }
 .dataTable th:last-child {
   width: 100px; 

@@ -55,8 +55,8 @@ class LocationAvailability(models.Model):
     """Модель доступности локаций"""
     id_status_loc = models.AutoField(primary_key=True)
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
-    begin_datetime = models.DateTimeField()
-    end_datetime = models.DateTimeField()
+    begin_datetime = models.DateField()
+    end_datetime = models.DateField()
     reason = models.ForeignKey(AvailabilityReason, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
@@ -67,8 +67,8 @@ class RoomAvailability(models.Model):
     """Модель доступности комнат"""
     id_status_room = models.AutoField(primary_key=True)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    begin_datetime = models.DateTimeField()
-    end_datetime = models.DateTimeField()
+    begin_datetime = models.DateField()
+    end_datetime = models.DateField()
     reason = models.ForeignKey(AvailabilityReason, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return f"{self.room} недоступна с {self.begin_datetime} по {self.end_datetime}"

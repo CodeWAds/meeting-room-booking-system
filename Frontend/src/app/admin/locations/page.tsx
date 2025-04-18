@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import styles from "../../../styles/Admin.module.css";
 import DeleteConfirmationModal from "../../../components/DelModal";
+
 import LocationModal from "../../../components/LocationsModule";
 
 interface Slot {
@@ -57,6 +58,7 @@ export default function LocationsPage() {
     location.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
   const handleAddOrUpdateLocation = (location: Location) => {
     if (editingLocation) {
       setLocations((prev) =>
@@ -78,13 +80,16 @@ export default function LocationsPage() {
   };
 
   const handleDeleteLocation = (locationId: number) => {
+
     setSelectedLocationId(locationId);
     setIsDeleteModalOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedLocationId) {
+
       setLocations((prev) => prev.filter((loc) => loc.id !== selectedLocationId));
+
       setIsDeleteModalOpen(false);
       setSelectedLocationId(null);
     }
@@ -92,6 +97,7 @@ export default function LocationsPage() {
 
   return (
     <main className={styles.content}>
+
       <LocationModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -124,6 +130,7 @@ export default function LocationsPage() {
             Добавить
           </button>
         </div>
+
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
@@ -142,10 +149,12 @@ export default function LocationsPage() {
                 <td>{location.name}</td>
                 <td>{location.address}</td>
                 <td className={styles.actionsCell}>
+
                   <button
                     className={styles.editBtn}
                     onClick={() => handleEditLocation(location)}
                   >
+
                     <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
                   </button>
                   <button

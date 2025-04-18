@@ -4,13 +4,14 @@ from .models import CustomUser, UserProfile, ManagerProfile, UserRole, FavoriteR
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from apps.location.models import Room, Location
+from apps.equipment.models import Equipment
 from django.contrib.auth import authenticate, login, logout
 
 
 import  json
 
 def login_by_telegram(request):
-    if request.method == "POST":
+    if request.method != "POST":
         JsonResponse({"message": "Method not supported"})
         # Предполагаем, что данные могут передаваться в формате JSON или POST form-data
     try:
@@ -23,26 +24,22 @@ def login_by_telegram(request):
     if not id_telegram:
         return JsonResponse({"message": "Parameter 'telegram_id' is required."})
 
-    try:
-        telegram_id_int = int(id_telegram)
-    except ValueError:
-        return JsonResponse({"message": "Invalid telegram_id. It must be an integer."})
-    
-    try:
-        user = CustomUser.objects.get(id_telegram=telegram_id_int)
-    except CustomUser.DoesNotExist:
+    if CustomUser.objects.filter(id_telegram=id_telegram).exists():
+        user = CustomUser.objects.filter(id_telegram=id_telegram).first()
+    else :
         user_create_tg(username, id_telegram)
+        user = CustomUser.objects.filter(id_telegram=id_telegram).first()
 
     if user.status == "banned":
         return JsonResponse({"message": "User is banned"}, status=403)
 
     login(request, user)
-    return JsonResponse({"message": "Login via Telegram successful", "username": user.username})
+    return JsonResponse({"message": "Login via Telegram successful", "id_user": user.id_user})
     
     
 
 def user_login(request):
-    if request.method == "POST":
+    if request.method != "POST":
         JsonResponse({"message": "Method not supported"})
     try:
         data = json.loads(request.body)
@@ -58,7 +55,7 @@ def user_login(request):
 
     if user is not None:
         login(request, user)
-        return JsonResponse({"message": "Login successful", "username": user.username})
+        return JsonResponse({"message": "Login successful", "user_id": user.id_user,"username": user.username})
     else:
         return JsonResponse({"message": "Invalid login credentials"}, status=400)
 
@@ -66,6 +63,59 @@ def user_login(request):
 def user_logout(request):
     logout(request)
     return JsonResponse({"message": "Logout successful"})
+
+
+def get_clients(request):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        users = CustomUser.objects.all()
+        user_data = []
+        for user in users:
+            roles = UserRole.objects.filter(user=user)
+            role_names = [role.role for role in roles]
+            if len(roles) == 1 and role_names[0] == "user":
+                user_info = {
+                        "id_user": user.id_user,
+                        "username": user.username,
+                        "status": user.status,    
+                }
+                user_data.append(user_info)
+        return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def get_stuff(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Method not supported"})
+    try:
+        data = json.loads(request.body)
+        id = data.get('id_user')
+        user = get_object_or_404(CustomUser, id_user=id)
+        roles = UserRole.objects.filter(user=user)
+        role_names = [role.role for role in roles]
+        super_admin = False
+        print(role_names)
+        if "superadmin" in role_names:
+            super_admin = True
+        if (not "admin" in role_names) and (not super_admin):
+            return JsonResponse({"message": "you don't have priviliges for this"})
+        users = CustomUser.objects.all()
+        user_data = []
+        for user in users:
+            roles = UserRole.objects.filter(user=user)
+            role_names = [role.role for role in roles]
+            if  (not "admin" in role_names or super_admin) and  (not "user" in role_names):
+                user_info = {
+                        "id_user": user.id_user,
+                        "username": user.username,
+                        "roles": role_names,
+                        "status": user.status,    
+                }
+                user_data.append(user_info)
+        return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def get_users(request):
     if request.method != "GET":
@@ -82,11 +132,40 @@ def get_users(request):
             roles = UserRole.objects.filter(user=user)
             role_names = [role.role for role in roles]
             user_info = {
+                    "id_user": user.id_user,
                     "username": user.username,
                     "roles": role_names,    
             }
             user_data.append(user_info)
         return JsonResponse({'users': user_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_role(request, id_user):
+    if request.method != "GET":
+        return JsonResponse({"message": "Method not supported"}, status=405)
+
+    try:
+        user = get_object_or_404(CustomUser, id_user=id_user)
+        roles = list(user.roles.values_list("role", flat=True))
+        role_list = []
+        for role in roles:
+            data = {"role": role}
+            if role == "user":
+                user_profile = UserProfile.objects.filter(user_role__user=user).first()
+                data['karma'] = user_profile.karma if user_profile else None
+            if role == "manager" :
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                data['location_id'] = location_id
+            role_list.append(data)
+        data = {
+            'id_user': user.id_user,
+            'roles': role_list
+        }
+
+        return JsonResponse(data, status=200)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -98,23 +177,23 @@ def get_user(request, id_user):
     try:
         user = get_object_or_404(CustomUser, id_user=id_user)
         roles = list(user.roles.values_list("role", flat=True))
-
+        role_list = []
+        for role in roles:
+            data = {"role": role}
+            if role == "user":
+                user_profile = UserProfile.objects.filter(user_role__user=user).first()
+                data['karma'] = user_profile.karma if user_profile else None
+            if role == "manager" :
+                manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
+                location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
+                data['location_id'] = location_id
+            role_list.append(data)
         data = {
             'id_user': user.id_user,
             'username': user.username,
             'status': user.status,
-            'roles': roles
+            'roles': role_list
         }
-
-        if "user" in roles:
-            user_profile = UserProfile.objects.filter(user_role__user=user).first()
-            data['karma'] = user_profile.karma if user_profile else None
-
-        if "manager" in roles:
-            manager_profile = ManagerProfile.objects.filter(user_role__user=user).first()
-            location_id = manager_profile.location_id.id_location if manager_profile and manager_profile.location_id else None
-            data['location_id'] = location_id
-
         return JsonResponse(data, status=200)
 
     except Exception as e:
@@ -125,32 +204,19 @@ def get_user(request, id_user):
 
 
 def user_create_tg(username, id_telegram):
-    try:
-        # Проверка на уникальность username
-        if CustomUser.objects.filter(id_telegram=id_telegram).exists():
-            return JsonResponse({'error': 'Username already exists'}, status=400)
+    # Проверка на уникальность username
+    if CustomUser.objects.filter(id_telegram=id_telegram).exists():
+        return 0
 
-        # Создание пользователя
-        user = CustomUser(username=username, id_telegram=id_telegram)
-        status = "active"
-        user.set_status(status)
-        user.save()  # Сохраняем пользователя, чтобы получить ID
-        user_role = UserRole.objects.create(user=user, role="user")
-        UserProfile.objects.create(user_role=user_role)
-        return JsonResponse({
-            'id_user': user.id_user,
-            'username': user.username,
-            'id_telegram': user.id_telegram,
-            'status': user.status,
-            'roles': user_role.role
-        }, status=201)
-
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-    except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    print(id_telegram)
+    # Создание пользователя
+    user = CustomUser(username=username, id_telegram=id_telegram)
+    status = "active"
+    user.set_status(status)
+    user.save()  # Сохраняем пользователя, чтобы получить ID
+    user_role = UserRole.objects.create(user=user, role="user")
+    UserProfile.objects.create(user_role=user_role)
+    return user
 
 def user_create(request):
     if request.method != "POST":
@@ -307,7 +373,6 @@ def user_permanent_delete(request, id_user):
 
         
 
-@csrf_exempt
 def add_favourite_room(request, id_user):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -330,7 +395,6 @@ def add_favourite_room(request, id_user):
             
         return JsonResponse({
             "message": message,
-            "favorite_id": favorite.favorite_id,
             "room_id": favorite.room.id_room,
             "id_user": favorite.user.id_user,
         })
@@ -338,36 +402,51 @@ def add_favourite_room(request, id_user):
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Неверный формат JSON.")
 
-@csrf_exempt  
-def favourite_room_detail(request,id_user, favorite_id):
+def favourite_room_detail(request,id_user, room_id):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
-    favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
-    
+    favorite = get_object_or_404(FavoriteRoom, room = room_id, user = id_user)
+    list_equip = list(favorite.room.id_equipment.values_list('id_equipment', flat=True))
+    final_equip = []
+    for i in range(len(list_equip)):
+        equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+        final_equip.append({"name" : equipment.name, "description": equipment.description})
     return JsonResponse({
         "favorite_id": favorite.favorite_id,
-        "room_id": favorite.room.id_room,
-        "id_user": favorite.user.id_user,
+        "id_room": favorite.room.id_room,
+        "room_name": favorite.room.room_name, 
+        "capacity": favorite.room.capacity, 
+        "id_equipment": final_equip
     })
 
 def get_favourite_rooms(request, id_user):
     if request.method != "GET":
         return JsonResponse({"message": "Method not supported"})
     
-    favorites = FavoriteRoom.objects.filter(id_user=id_user)
+    favorites = FavoriteRoom.objects.filter(user=id_user)
     data = []
     for fav in favorites:
+        list_equip = list(fav.room.id_equipment.values_list('id_equipment', flat=True))
+        final_equip = []
+        for i in range(len(list_equip)):
+            equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+            final_equip.append({"name" : equipment.name, "description": equipment.description})
         data.append({
             "favorite_id": fav.favorite_id,
-            "room_id": fav.room.id,
-            "id_user": fav.user.id,
+            "room_id": fav.room.id_room,
+            "location_id": fav.room.id_location.id_location,
+            "location_name": fav.room.id_location.name,
+            "id_user": fav.user.id_user,
+            "room_name": fav.room.room_name, 
+            "capacity": fav.room.capacity, 
+            "id_equipment": final_equip
         })
     return JsonResponse(data, safe=False)
 
-def delete_favourite_room(request,id_user, favorite_id):
+def delete_favourite_room(request,id_user, room_id):
     if request.method != "DELETE":
         return HttpResponseNotAllowed(["DELETE"])
     
-    favorite = get_object_or_404(FavoriteRoom, favorite_id=favorite_id)
+    favorite = get_object_or_404(FavoriteRoom, room = room_id, user = id_user)
     favorite.delete()
-    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite_id})
+    return JsonResponse({"message": "Избранная комната удалена", "favorite_id": favorite.room.id_room})

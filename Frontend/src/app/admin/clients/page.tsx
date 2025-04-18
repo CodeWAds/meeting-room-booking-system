@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import styles from "../../../styles/Admin.module.css";
 import DeleteConfirmationModal from "../../../components/DelModal";
+
 import ClientStatusModal from "../../../components/ClientsStatusModal";
 
 interface Client {
@@ -36,6 +37,7 @@ export default function ClientsPage() {
     client.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
     setIsEditModalOpen(true);
@@ -66,6 +68,7 @@ export default function ClientsPage() {
 
   return (
     <main className={styles.content}>
+
       <ClientStatusModal
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -95,6 +98,7 @@ export default function ClientsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
@@ -103,7 +107,9 @@ export default function ClientsPage() {
               <th>ID</th>
               <th>Имя</th>
               <th>Логин</th>
+
               <th>Статус</th>
+
               <th>Действия</th>
             </tr>
           </thead>
@@ -113,12 +119,14 @@ export default function ClientsPage() {
                 <td>#{client.id}</td>
                 <td>{client.name}</td>
                 <td>{client.username}</td>
+
                 <td>{client.status}</td>
                 <td className={styles.actionsCell}>
                   <button
                     className={styles.editBtn}
                     onClick={() => handleEditClient(client)}
                   >
+
                     <img src="/svg/edit.svg" alt="Edit" width={16} height={16} />
                   </button>
                   <button
