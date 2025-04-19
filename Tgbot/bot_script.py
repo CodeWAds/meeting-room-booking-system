@@ -136,6 +136,79 @@ class BookingBot:
             logger.error(f"Ошибка отправки уведомления: {e}", exc_info=True)
             return False
 
+    def send_cancellation_notification(self, booking):
+        """Отправка уведомления об отмене бронирования"""
+        time_slots = sorted(booking.get('time_slots', []), 
+                    key=lambda x: x['time_begin'])
+        time_range = f"{time_slots[0]['time_begin']} - {time_slots[-1]['time_end']}"
+
+        try:
+            if not booking.get('telegram_id'):
+                logger.warning(f"Нет telegram_id в бронировании: {booking}")
+                return False
+
+            message = (
+                f"❌ Привет, {booking.get('username', 'пользователь')}!\n\n"
+                "Ваше бронирование было отменено, так как оно не было подтверждено вовремя.\n"
+                f"📍 *Локация*: {booking.get('location_name', 'не указана')}\n"
+                f"🚪 *Комната*: {booking.get('room_name', 'не указана')}\n"
+                f"📅 *Дата*: {booking.get('date', 'не указана')}\n"
+                f"🕒 *Время*: {time_range}\n\n"
+            )
+
+            self.bot.send_message(
+                booking['telegram_id'],
+                message,
+                parse_mode='Markdown'
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Ошибка отправки уведомления об отмене: {e}", exc_info=True)
+            return False
+
+    def update_booking_review(self, booking_id):
+        """Обновление рейтинга бронирования перед удалением"""
+        try:
+            logger.info(f"Обновление рейтинга бронирования {booking_id}...")
+            response = requests.patch(
+                f"{self.api_url}{booking_id}/update/",
+                json={"review": -20},
+                timeout=10
+            )
+            response.raise_for_status()
+            logger.info(f"Рейтинг бронирования {booking_id} успешно обновлен.")
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка обновления рейтинга бронирования {booking_id}: {e}", exc_info=True)
+            return False
+
+    def delete_booking(self, booking):
+        """Удаление бронирования через API и уведомление клиента"""
+        try:
+            booking_id = booking['booking_id']
+            logger.info(f"Удаление бронирования {booking_id}...")
+
+            # Обновляем рейтинг бронирования
+            if self.update_booking_review(booking_id):
+                logger.info(f"Рейтинг бронирования {booking_id} обновлен перед удалением.")
+
+            # Отправляем уведомление об отмене
+            if self.send_cancellation_notification(booking):
+                logger.info(f"Уведомление об отмене отправлено для бронирования {booking_id}")
+
+            # Удаляем бронирование
+            response = requests.delete(
+                f"{self.api_url}{booking_id}/delete/",
+                timeout=10
+            )
+            response.raise_for_status()
+            logger.info(f"Бронирование {booking_id} успешно удалено.")
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка удаления бронирования {booking_id}: {e}", exc_info=True)
+            return False
+
     def check_bookings(self):
         """Проверка бронирований каждые 10 минут"""
         while self.running:
@@ -145,13 +218,14 @@ class BookingBot:
                 
                 bookings = self.get_upcoming_bookings()
                 notifications_sent = 0
+                bookings_deleted = 0
                 
                 for booking in bookings:
                     if not isinstance(booking, dict):
                         continue
                         
                     required_fields = ['telegram_id', 'status', 'booking_id', 
-                                     'date', 'time_slots', 'room_name']
+                                    'date', 'time_slots', 'room_name']
                     if not all(k in booking for k in required_fields):
                         logger.warning(f"Неполные данные: {booking}")
                         continue
@@ -171,12 +245,17 @@ class BookingBot:
                                 booking_datetime = datetime.combine(booking_date, start_time)
                                 time_diff = (booking_datetime - now).total_seconds() / 60
                                 
-                                if 55 < time_diff <= 65:  # ~1 час
+                                logger.info(f"Время до бронирования {booking['booking_id']}: {time_diff} минут")
+                                
+                                if 55 < time_diff <= 65:  
                                     if self.send_appropriate_notification(booking, 60):
                                         notifications_sent += 1
-                                elif 10 < time_diff <= 20:  # ~15 минут
+                                elif 10 < time_diff <= 20:  
                                     if self.send_appropriate_notification(booking, 15):
                                         notifications_sent += 1
+                                elif time_diff < -5:  
+                                    if self.delete_booking(booking):
+                                        bookings_deleted += 1
                                         
                             except ValueError as e:
                                 logger.error(f"Ошибка времени: {e}", exc_info=True)
@@ -186,8 +265,8 @@ class BookingBot:
                         logger.error(f"Ошибка даты: {e}", exc_info=True)
                         continue
                 
-                logger.info(f"Проверка завершена. Отправлено уведомлений: {notifications_sent}")
-                time.sleep(300)
+                logger.info(f"Проверка завершена. Отправлено уведомлений: {notifications_sent}, удалено бронирований: {bookings_deleted}")
+                time.sleep(60)
                 
             except Exception as e:
                 logger.error(f"Критическая ошибка: {e}", exc_info=True)
@@ -200,6 +279,7 @@ class BookingBot:
         with self.lock:
             last_sent = self.last_notification.get(key)
             if last_sent and (datetime.now() - last_sent) < timedelta(hours=23):
+                logger.info(f"Уведомление уже отправлено ранее: {key}")
                 return False
                 
             if self.send_notification(booking, minutes_before):
