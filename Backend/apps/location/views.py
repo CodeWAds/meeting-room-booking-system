@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponse
 from .models import Location, Room, TimeSlot, SpecialTimeSlot, RoomAvailability, LocationAvailability, AvailabilityReason
 from datetime import datetime, timedelta
 from apps.equipment.models import Equipment
-from django.db.models import Count, Q
+from django.db.models import Count, Q, OuterRef , Exists
 import datetime
 
 
@@ -406,22 +406,53 @@ def get_available_rooms(request):
     
     
     
-    available_rooms = Room.objects.filter(
-            id_location=id_location
-        ).exclude(Q(bookings__date=date) & Q(bookings__slot__in=time_slots) |
-    Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date)).distinct().select_related('id_location')
+    # available_rooms = Room.objects.filter(
+    #         id_location=id_location
+    #     ).exclude((Q(bookings__date=date) & Q(bookings__slot__in=time_slots)) | 
+    # (Q(roomavailability__begin_datetime__lt=date) & Q(roomavailability__end_datetime__gt=date))).distinct().select_related('id_location')
+    vailability_subquery = RoomAvailability.objects.filter(
+        room=OuterRef('pk'),
+        begin_datetime__lte=date,
+        end_datetime__gte=date
+    )
+    from apps.booking.models import Booking
+# подзапрос для бронирований на дату и слот
+    booking_subquery = Booking.objects.filter(
+    room=OuterRef('pk'),
+    date=date,
+    slot__in=time_slots
+    )
+
+# основной запрос
+    available_rooms = Room.objects.annotate(
+        has_booking=Exists(booking_subquery),
+        has_availability=Exists(vailability_subquery)
+    ).filter(
+        id_location=id_location
+    ).exclude(
+        Q(has_booking=True) | Q(has_availability=True)
+    ).distinct().select_related('id_location')
+
+    print(available_rooms)
     from apps.user.models import FavoriteRoom
     location = Location.objects.filter(id_location= id_location)
-    room_list = [
-            {
-                "id": room.id_room,
-                "name": room.room_name,
-                "location": room.id_location.name,
-                "capacity": room.capacity,
-                "favourite": FavoriteRoom.objects.filter(room = room, user__pk = user_id).exists()
-            }
-            for room in available_rooms
-        ]
+    room_list = []
+    for room in available_rooms:
+        list_equip = list(room.id_equipment.values_list('id_equipment', flat=True))
+        final_equip = []
+        for i in range(len(list_equip)):
+            equipment = get_object_or_404(Equipment, id_equipment = list_equip[i])
+            final_equip.append({"name" : equipment.name, "description": equipment.description})
+        room_list.append({
+            "id": room.id_room,
+            "name": room.room_name,
+            "location": room.id_location.name,
+            "capacity": room.capacity,
+            "favourite": FavoriteRoom.objects.filter(room = room, user__pk = user_id).exists(),
+            "id_equipment": final_equip
+        })
+        
+            
     
 
     return JsonResponse({
